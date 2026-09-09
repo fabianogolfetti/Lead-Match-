@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>LeadMatch - teste</title>
+
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#1c1c1c">
+
+<link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32.png">
+
+<!-- iOS: sem essas tags, "Adicionar à Tela de Início" abre como atalho de
+     Safari (com barra de endereço), não como app em tela cheia -->
+<link rel="apple-touch-icon" sizes="180x180" href="/icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="LeadMatch">
+
+<style>
+  :root {
+    --bg: #1c1c1c;
+    --bg-card: #262626;
+    --bg-input: #202020;
+    --border: #3a3a3a;
+    --text: #e8e6e2;
+    --text-muted: #9a958c;
+    --amber-dark: #412402;
+    --amber-light: #FAC775;
+    --erro: #e08066;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    font-family: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    max-width: 640px;
+    margin: 0 auto;
+    padding: calc(40px + env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) calc(24px + env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
+    background: var(--bg);
+    color: var(--text);
+  }
+
+  h1 { font-size: 22px; font-weight: 600; letter-spacing: -0.01em; }
+  h3 { font-size: 16px; font-weight: 600; margin: 0 0 8px; }
+
+  p { color: var(--text-muted); }
+
+  textarea, input {
+    width: 100%;
+    font-size: 15px;
+    padding: 8px 10px;
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text);
+    font-family: inherit;
+  }
+
+  textarea { height: 80px; }
+
+  textarea:focus, input:focus {
+    outline: none;
+    border-color: var(--amber-light);
+  }
+
+  button {
+    padding: 10px 16px;
+    font-size: 14px;
+    font-weight: 600;
+    margin-top: 8px;
+    margin-right: 8px;
+    cursor: pointer;
+    border-radius: 6px;
+    border: 1px solid var(--amber-light);
+    background: var(--amber-light);
+    color: var(--amber-dark);
+  }
+
+  button.secundario {
+    background: transparent;
+    color: var(--amber-light);
+  }
+
+  .card {
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 16px;
+    margin-top: 16px;
+    background: var(--bg-card);
+  }
+
+  label { display: block; margin-top: 10px; font-size: 12px; color: var(--text-muted); }
+
+  .match {
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 12px;
+    margin-top: 8px;
+    background: var(--bg-input);
+  }
+
+  .badge {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin-right: 6px;
+  }
+
+  .badge-vendedor { background: var(--amber-light); color: var(--amber-dark); }
+  .badge-comprador { background: var(--amber-dark); color: var(--amber-light); }
+
+  .chip {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 999px;
+    font-size: 13px;
+    font-weight: 600;
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    color: var(--text);
+  }
+
+  .erro { color: var(--erro); }
+
+  .topo { display: flex; justify-content: space-between; align-items: center; }
+  .abas { display: flex; gap: 8px; margin-bottom: 4px; }
+  .abas button.inativa { background: transparent; color: var(--text-muted); border-color: var(--border); }
+
+  select {
+    font-size: 14px;
+    padding: 8px 10px;
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text);
+    font-family: inherit;
+  }
+
+  .filtros { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-top: 10px; }
+
+  .chip-filtro {
+    padding: 5px 12px;
+    margin: 0;
+    font-size: 12px;
+    font-weight: 600;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text-muted);
+  }
+
+  .chip-filtro.ativo {
+    border-color: var(--amber-light);
+    background: var(--amber-light);
+    color: var(--amber-dark);
+  }
+
+  .lead-card {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 12px;
+    margin-top: 8px;
+    background: var(--bg-input);
+  }
+
+  .lead-card.fechado { opacity: 0.6; }
+
+  .lead-card .lead-card-linha { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; }
+
+  .lead-card .lead-nome { display: flex; align-items: center; gap: 8px; font-weight: 600; }
+
+  .lead-card .lead-info { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 13px; color: var(--text-muted); }
+
+  .lead-card .lead-valor { font-weight: 600; color: var(--amber-light); }
+
+  .lead-card .lead-card-acoes { display: flex; flex-wrap: wrap; gap: 6px; }
+
+  .btn-mini {
+    padding: 5px 10px;
+    margin: 0;
+    font-size: 12px;
+  }
+
+  .btn-mini.perigo { border-color: var(--erro); color: var(--erro); }
+
+  .chip-fechado {
+    padding: 2px 8px;
+    font-size: 10px;
+  }
+
+  .lead-matches { margin-top: -2px; }
+  .lead-matches .match { margin-top: 6px; }
+</style>
+</head>
+<body>
+
+  <div id="tela-auth">
+    <h1>LeadMatch</h1>
+    <p>Entre com sua conta de corretor ou cadastre uma nova:</p>
+    <div class="abas">
+      <button id="aba-login" onclick="mostrarAba('login')">Entrar</button>
+      <button id="aba-cadastro" class="secundario" onclick="mostrarAba('cadastro')">Cadastrar</button>
+    </div>
+    <div class="card">
+      <label>Nome</label>
+      <input id="auth_nome" placeholder="seu nome">
+      <label>Senha</label>
+      <input id="auth_senha" type="password" placeholder="sua senha">
+      <button id="botao-auth" onclick="enviarAuth()">Entrar</button>
+      <div id="auth-erro"></div>
+    </div>
+  </div>
+
+  <div id="tela-app" style="display:none">
+    <div class="topo">
+      <h1>LeadMatch</h1>
+      <div><span id="corretor-nome" class="chip"></span> <button class="secundario" onclick="sair()">Sair</button></div>
+    </div>
+
+    <div class="abas">
+      <button id="aba-processar" onclick="mostrarAbaApp('processar')">Processar mensagem</button>
+      <button id="aba-meusleads" class="secundario" onclick="mostrarAbaApp('meusleads')">Meus leads</button>
+    </div>
+
+    <div id="view-processar">
+      <p>Cole a mensagem do corretor como ela chegaria no WhatsApp:</p>
+      <textarea id="mensagem" placeholder="Ex: tenho um terreno industrial em Atibaia, 6 mil m2, quero 850 mil nele"></textarea>
+      <br>
+      <button onclick="processar()">Processar mensagem</button>
+      <button class="secundario" onclick="preencherManualmente()">Preencher manualmente</button>
+
+      <div id="resultado"></div>
+    </div>
+
+    <div id="view-meusleads" style="display:none">
+      <input id="busca-leads" placeholder="Buscar por nome ou cidade..." oninput="renderizarLeads()">
+
+      <div class="filtros" id="filtros-papel">
+        <button class="chip-filtro ativo" data-valor="todos" onclick="definirFiltroPapel('todos', this)">Todos</button>
+        <button class="chip-filtro" data-valor="comprador" onclick="definirFiltroPapel('comprador', this)">Comprador</button>
+        <button class="chip-filtro" data-valor="vendedor" onclick="definirFiltroPapel('vendedor', this)">Vendedor</button>
+      </div>
+
+      <div class="filtros" id="filtros-tipo">
+        <button class="chip-filtro ativo" data-valor="todos" onclick="definirFiltroTipo('todos', this)">Todos</button>
+        <button class="chip-filtro" data-valor="terreno" onclick="definirFiltroTipo('terreno', this)">Terreno</button>
+        <button class="chip-filtro" data-valor="ferro_lote" onclick="definirFiltroTipo('ferro_lote', this)">Ferro em lote</button>
+        <button class="chip-filtro" data-valor="estrutura_metalica" onclick="definirFiltroTipo('estrutura_metalica', this)">Estrutura metálica</button>
+      </div>
+
+      <div class="filtros">
+        <label style="margin:0;">Ordenar por
+          <select id="ordenacao-leads" onchange="renderizarLeads()">
+            <option value="recente">Mais recente</option>
+            <option value="valor">Valor</option>
+          </select>
+        </label>
+      </div>
+
+      <div id="lista-leads"></div>
+    </div>
+  </div>
+
+  <script>
+    let dadosAtuais = null;
+    let abaAtual = 'login';
+    let leadsCache = [];
+    let filtroPapel = 'todos';
+    let filtroTipo = 'todos';
+
+    const tipoLabel = {
+      terreno: 'Terreno',
+      ferro_lote: 'Ferro em lote',
+      estrutura_metalica: 'Estrutura metálica',
+    };
+
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/service-worker.js').catch(console.error);
+      });
+    }
+
+    async function verificarSessao() {
+      const res = await fetch('/auth/me');
+      const data = await res.json();
+      if (data.logado) {
+        entrarNaTelaApp(data.nome);
+      } else {
+        document.getElementById('tela-auth').style.display = '';
+        document.getElementById('tela-app').style.display = 'none';
+      }
+    }
+
+    function entrarNaTelaApp(nome) {
+      document.getElementById('tela-auth').style.display = 'none';
+      document.getElementById('tela-app').style.display = '';
+      document.getElementById('corretor-nome').textContent = nome;
+    }
+
+    function mostrarAba(aba) {
+      abaAtual = aba;
+      document.getElementById('aba-login').className = aba === 'login' ? '' : 'secundario';
+      document.getElementById('aba-cadastro').className = aba === 'cadastro' ? '' : 'secundario';
+      document.getElementById('botao-auth').textContent = aba === 'login' ? 'Entrar' : 'Cadastrar';
+      document.getElementById('auth-erro').innerHTML = '';
+    }
+
+    async function enviarAuth() {
+      const nome = document.getElementById('auth_nome').value.trim();
+      const senha = document.getElementById('auth_senha').value;
+      const erroDiv = document.getElementById('auth-erro');
+      erroDiv.innerHTML = '';
+      if (!nome || !senha) {
+        erroDiv.innerHTML = '<p class="erro">Preencha nome e senha.</p>';
+        return;
+      }
+
+      const rota = abaAtual === 'login' ? '/auth/login' : '/auth/cadastro';
+      try {
+        const res = await fetch(rota, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ nome, senha }),
+        });
+        const data = await res.json();
+        if (data.erro) throw new Error(data.erro);
+        entrarNaTelaApp(data.nome);
+      } catch (e) {
+        erroDiv.innerHTML = `<p class="erro">${e.message}</p>`;
+      }
+    }
+
+    async function sair() {
+      await fetch('/auth/logout', { method: 'POST' });
+      document.getElementById('auth_nome').value = '';
+      document.getElementById('auth_senha').value = '';
+      document.getElementById('resultado').innerHTML = '';
+      leadsCache = [];
+      verificarSessao();
+    }
+
+    verificarSessao();
+
+    function mostrarAbaApp(aba) {
+      document.getElementById('aba-processar').className = aba === 'processar' ? '' : 'secundario';
+      document.getElementById('aba-meusleads').className = aba === 'meusleads' ? '' : 'secundario';
+      document.getElementById('view-processar').style.display = aba === 'processar' ? '' : 'none';
+      document.getElementById('view-meusleads').style.display = aba === 'meusleads' ? '' : 'none';
+      if (aba === 'meusleads') carregarMeusLeads();
+    }
+
+    async function carregarMeusLeads() {
+      const listaDiv = document.getElementById('lista-leads');
+      listaDiv.innerHTML = '<p>Carregando...</p>';
+      const res = await fetch('/leads');
+      if (res.status === 401) return verificarSessao();
+      leadsCache = await res.json();
+      renderizarLeads();
+    }
+
+    function definirFiltroPapel(valor, botao) {
+      filtroPapel = valor;
+      document.querySelectorAll('#filtros-papel .chip-filtro').forEach(b => b.classList.remove('ativo'));
+      botao.classList.add('ativo');
+      renderizarLeads();
+    }
+
+    function definirFiltroTipo(valor, botao) {
+      filtroTipo = valor;
+      document.querySelectorAll('#filtros-tipo .chip-filtro').forEach(b => b.classList.remove('ativo'));
+      botao.classList.add('ativo');
+      renderizarLeads();
+    }
+
+    function valorPrincipal(lead) {
+      if (lead.tipo === 'ferro_lote') return lead.preco_kg;
+      return lead.valor_total;
+    }
+
+    function formatarValor(lead) {
+      const valor = valorPrincipal(lead);
+      if (valor == null) return '—';
+      const valorFormatado = Number(valor).toLocaleString('pt-BR');
+      return lead.tipo === 'ferro_lote' ? `R$ ${valorFormatado}/kg` : `R$ ${valorFormatado}`;
+    }
+
+    function renderizarLeads() {
+      const busca = document.getElementById('busca-leads').value.trim().toLowerCase();
+      const ordenacao = document.getElementById('ordenacao-leads').value;
+      const listaDiv = document.getElementById('lista-leads');
+
+      let leads = leadsCache.filter(lead => {
+        if (filtroPapel !== 'todos' && lead.papel !== filtroPapel) return false;
+        if (filtroTipo !== 'todos' && lead.tipo !== filtroTipo) return false;
+        if (busca) {
+          const nome = (lead.nome || '').toLowerCase();
+          const cidade = (lead.cidade || '').toLowerCase();
+          if (!nome.includes(busca) && !cidade.includes(busca)) return false;
+        }
+        return true;
+      });
+
+      if (ordenacao === 'valor') {
+        leads = leads.slice().sort((a, b) => (valorPrincipal(b) ?? -Infinity) - (valorPrincipal(a) ?? -Infinity));
+      } else {
+        leads = leads.slice().sort((a, b) => b.id - a.id);
+      }
+
+      if (!leads.length) {
+        listaDiv.innerHTML = '<p>Nenhum lead encontrado.</p>';
+        return;
+      }
+
+      listaDiv.innerHTML = leads.map(lead => `
+        <div class="lead-card ${lead.status === 'fechado' ? 'fechado' : ''}">
+          <div class="lead-card-linha">
+            <div class="lead-nome">
+              <span class="badge badge-${lead.papel}">${lead.papel}</span>
+              ${lead.nome || '(sem nome)'}
+              ${lead.status === 'fechado' ? '<span class="chip chip-fechado">Fechado</span>' : ''}
+            </div>
+            <div class="lead-info">
+              <span>${tipoLabel[lead.tipo] || lead.tipo}</span>
+              <span>${lead.cidade || '—'}</span>
+              <span class="lead-valor">${formatarValor(lead)}</span>
+            </div>
+          </div>
+          <div class="lead-card-acoes">
+            <button class="secundario btn-mini" onclick="verMatches(${lead.id})">Ver matches</button>
+            <button class="secundario btn-mini" onclick="editarLead(${lead.id})">Editar</button>
+            ${lead.status !== 'fechado' ? `<button class="secundario btn-mini" onclick="marcarFechado(${lead.id})">Marcar como fechado</button>` : ''}
+            <button class="secundario btn-mini perigo" onclick="excluirLead(${lead.id})">Excluir</button>
+          </div>
+          <div class="lead-matches" id="matches-${lead.id}"></div>
+        </div>
+      `).join('');
+    }
+
+    async function verMatches(id) {
+      const container = document.getElementById(`matches-${id}`);
+      if (container.dataset.aberto === '1') {
+        container.innerHTML = '';
+        container.dataset.aberto = '0';
+        return;
+      }
+
+      container.innerHTML = '<p>Buscando matches...</p>';
+      const res = await fetch(`/leads/${id}/matches`);
+      if (res.status === 401) return verificarSessao();
+      const data = await res.json();
+      if (data.erro) {
+        container.innerHTML = `<p class="erro">${data.erro}</p>`;
+        return;
+      }
+
+      container.dataset.aberto = '1';
+      if (!data.matches.length) {
+        container.innerHTML = '<p>Nenhum match encontrado.</p>';
+        return;
+      }
+      container.innerHTML = data.matches.map(m => `
+        <div class="match"><span class="badge badge-${m.papel}">${m.papel}</span>${m.nome || '(sem nome)'} — diferença: ${m.diferenca}</div>
+      `).join('');
+    }
+
+    async function marcarFechado(id) {
+      if (!confirm('Marcar esse lead como fechado? Ele para de entrar nas buscas de match.')) return;
+      const res = await fetch(`/leads/${id}/fechar`, { method: 'POST' });
+      if (res.status === 401) return verificarSessao();
+      await carregarMeusLeads();
+    }
+
+    async function excluirLead(id) {
+      if (!confirm('Excluir esse lead? Essa ação não pode ser desfeita.')) return;
+      const res = await fetch(`/leads/${id}`, { method: 'DELETE' });
+      if (res.status === 401) return verificarSessao();
+      await carregarMeusLeads();
+    }
+
+    function editarLead(id) {
+      const lead = leadsCache.find(l => l.id === id);
+      if (!lead) return;
+
+      dadosAtuais = {
+        tipo: lead.tipo, nome: lead.nome, papel: lead.papel, cidade: lead.cidade, etiqueta: lead.etiqueta,
+        area_m2: lead.area_m2, valor_total: lead.valor_total, toneladas: lead.toneladas, preco_kg: lead.preco_kg,
+        comprimento_m: lead.comprimento_m, largura_m: lead.largura_m,
+      };
+      mostrarAbaApp('processar');
+      mostrarFormularioConfirmacao(dadosAtuais, lead.mensagem_original || '', lead.id);
+    }
+
+    async function processar() {
+      const texto = document.getElementById('mensagem').value.trim();
+      if (!texto) return;
+
+      const resDiv = document.getElementById('resultado');
+      resDiv.innerHTML = '<p>Processando...</p>';
+
+      try {
+        const res = await fetch('/processar-mensagem', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ texto }),
+        });
+        if (res.status === 401) return verificarSessao();
+        const data = await res.json();
+        if (data.erro) throw new Error(data.erro);
+
+        dadosAtuais = data.dadosExtraidos;
+        mostrarFormularioConfirmacao(dadosAtuais, texto);
+      } catch (e) {
+        resDiv.innerHTML = `<p class="erro">Erro: ${e.message}</p>`;
+      }
+    }
+
+    function preencherManualmente() {
+      dadosAtuais = {
+        tipo: '', nome: '', papel: '', cidade: '', etiqueta: '',
+        area_m2: '', valor_total: '', toneladas: '', preco_kg: '',
+        comprimento_m: '', largura_m: '',
+      };
+      mostrarFormularioConfirmacao(dadosAtuais, '(preenchido manualmente, sem IA)');
+    }
+
+    function mostrarFormularioConfirmacao(dados, mensagemOriginal, idEdicao = null) {
+      const campos = Object.keys(dados).filter(k => k !== 'campos_faltando');
+      let html = `<div class="card"><h3>${idEdicao ? 'Editar lead' : 'Confira e confirme'}:</h3>`;
+      if (dados.campos_faltando && dados.campos_faltando.length) {
+        html += `<p class="erro">Faltando: ${dados.campos_faltando.join(', ')}</p>`;
+      }
+      const dicas = {
+        tipo: 'terreno | ferro_lote | estrutura_metalica',
+        papel: 'comprador | vendedor',
+      };
+      campos.forEach(campo => {
+        const placeholder = dicas[campo] ? ` placeholder="${dicas[campo]}"` : '';
+        html += `<label>${campo}</label><input id="campo_${campo}" value="${dados[campo] ?? ''}"${placeholder}>`;
+      });
+      html += `<button onclick='confirmar(${JSON.stringify(mensagemOriginal)}, ${idEdicao ?? 'null'})'>${idEdicao ? 'Salvar alterações' : 'Confirmar lead'}</button></div>`;
+      document.getElementById('resultado').innerHTML = html;
+    }
+
+    async function confirmar(mensagemOriginal, idEdicao) {
+      const campos = Object.keys(dadosAtuais).filter(k => k !== 'campos_faltando');
+      const payload = {};
+      campos.forEach(campo => {
+        const valor = document.getElementById(`campo_${campo}`).value;
+        payload[campo] = valor === '' ? null : (isNaN(valor) ? valor : Number(valor));
+      });
+      payload.mensagemOriginal = mensagemOriginal;
+
+      const url = idEdicao ? `/leads/${idEdicao}` : '/leads';
+      const metodo = idEdicao ? 'PUT' : 'POST';
+
+      const res = await fetch(url, {
+        method: metodo,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      if (res.status === 401) return verificarSessao();
+      const data = await res.json();
+      if (data.erro) {
+        document.getElementById('resultado').innerHTML = `<p class="erro">Erro: ${data.erro}</p>`;
+        return;
+      }
+
+      let html = `<div class="card"><h3>${idEdicao ? 'Lead atualizado!' : 'Lead salvo!'}</h3>`;
+      if (data.matches && data.matches.length) {
+        html += '<p>Matches encontrados:</p>';
+        data.matches.forEach(m => {
+          html += `<div class="match"><span class="badge badge-${m.papel}">${m.papel}</span>${m.nome || '(sem nome)'} — diferença: ${m.diferenca}</div>`;
+        });
+      } else {
+        html += '<p>Nenhum match encontrado ainda.</p>';
+      }
+      html += '</div>';
+      document.getElementById('resultado').innerHTML = html;
+    }
+  </script>
+</body>
+</html>

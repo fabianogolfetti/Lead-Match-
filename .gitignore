@@ -1,0 +1,13 @@
+node_modules/
+
+# segredos — nunca versionar
+.env
+
+# banco local (SQLite) — dados de teste, não faz sentido versionar
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+
+# configuração local do Claude Code (específica desta máquina)
+.claude/

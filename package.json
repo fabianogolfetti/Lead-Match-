@@ -1,0 +1,17 @@
+{
+  "name": "leadmatch",
+  "version": "1.0.0",
+  "description": "Plataforma de captacao e match de leads (compradores/vendedores) via mensagem de texto, com IA extraindo os dados automaticamente",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "bcryptjs": "^3.0.3",
+    "connect-pg-simple": "^10.0.0",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "express-session": "^1.19.0",
+    "pg": "^8.22.0"
+  }
+}
