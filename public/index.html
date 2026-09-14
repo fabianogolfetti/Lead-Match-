@@ -127,9 +127,66 @@
 
   .erro { color: var(--erro); }
 
+  .alerta-erro {
+    margin-top: 10px;
+    padding: 10px 12px;
+    border: 1px solid var(--erro);
+    border-radius: 8px;
+    background: rgba(224, 128, 102, 0.12);
+    color: var(--erro);
+    font-size: 13px;
+  }
+
   .topo { display: flex; justify-content: space-between; align-items: center; }
-  .abas { display: flex; gap: 8px; margin-bottom: 4px; }
-  .abas button.inativa { background: transparent; color: var(--text-muted); border-color: var(--border); }
+
+  .abas {
+    display: flex;
+    gap: 4px;
+    padding: 4px;
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    margin-bottom: 4px;
+  }
+  .abas button {
+    flex: 1;
+    margin: 0;
+    border: 1px solid transparent;
+    background: transparent;
+    color: var(--text-muted);
+  }
+  .abas button.ativa {
+    background: var(--amber-light);
+    border-color: var(--amber-light);
+    color: var(--amber-dark);
+  }
+
+  button:disabled { opacity: 0.6; cursor: default; }
+
+  #tela-auth {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    overflow-y: auto;
+    background: var(--bg);
+    padding: calc(24px + env(safe-area-inset-top)) calc(24px + env(safe-area-inset-right))
+              calc(24px + env(safe-area-inset-bottom)) calc(24px + env(safe-area-inset-left));
+  }
+
+  .auth-caixa { width: 100%; max-width: 360px; text-align: center; }
+  .auth-caixa .card { text-align: left; }
+
+  .auth-titulo { display: flex; align-items: center; justify-content: center; gap: 10px; }
+  .auth-titulo h1 { margin: 0; }
+  .auth-titulo .logo {
+    width: 44px;
+    height: 44px;
+    border-radius: 11px;
+    border: 1px solid var(--border);
+  }
 
   select {
     font-size: 14px;
@@ -203,19 +260,24 @@
 <body>
 
   <div id="tela-auth">
-    <h1>LeadMatch</h1>
-    <p>Entre com sua conta de corretor ou cadastre uma nova:</p>
-    <div class="abas">
-      <button id="aba-login" onclick="mostrarAba('login')">Entrar</button>
-      <button id="aba-cadastro" class="secundario" onclick="mostrarAba('cadastro')">Cadastrar</button>
-    </div>
-    <div class="card">
-      <label>Nome</label>
-      <input id="auth_nome" placeholder="seu nome">
-      <label>Senha</label>
-      <input id="auth_senha" type="password" placeholder="sua senha">
-      <button id="botao-auth" onclick="enviarAuth()">Entrar</button>
-      <div id="auth-erro"></div>
+    <div class="auth-caixa">
+      <div class="auth-titulo">
+        <img src="/icons/icon-192.png" alt="" class="logo">
+        <h1>LeadMatch</h1>
+      </div>
+      <p>Entre com sua conta de corretor ou cadastre uma nova:</p>
+      <div class="abas">
+        <button id="aba-login" class="ativa" onclick="mostrarAba('login')">Entrar</button>
+        <button id="aba-cadastro" onclick="mostrarAba('cadastro')">Cadastrar</button>
+      </div>
+      <div class="card">
+        <label>Nome</label>
+        <input id="auth_nome" placeholder="seu nome">
+        <label>Senha</label>
+        <input id="auth_senha" type="password" placeholder="sua senha">
+        <button id="botao-auth" onclick="enviarAuth()">Entrar</button>
+        <div id="auth-erro"></div>
+      </div>
     </div>
   </div>
 
@@ -226,8 +288,8 @@
     </div>
 
     <div class="abas">
-      <button id="aba-processar" onclick="mostrarAbaApp('processar')">Processar mensagem</button>
-      <button id="aba-meusleads" class="secundario" onclick="mostrarAbaApp('meusleads')">Meus leads</button>
+      <button id="aba-processar" class="ativa" onclick="mostrarAbaApp('processar')">Processar mensagem</button>
+      <button id="aba-meusleads" onclick="mostrarAbaApp('meusleads')">Meus leads</button>
     </div>
 
     <div id="view-processar">
@@ -307,8 +369,8 @@
 
     function mostrarAba(aba) {
       abaAtual = aba;
-      document.getElementById('aba-login').className = aba === 'login' ? '' : 'secundario';
-      document.getElementById('aba-cadastro').className = aba === 'cadastro' ? '' : 'secundario';
+      document.getElementById('aba-login').classList.toggle('ativa', aba === 'login');
+      document.getElementById('aba-cadastro').classList.toggle('ativa', aba === 'cadastro');
       document.getElementById('botao-auth').textContent = aba === 'login' ? 'Entrar' : 'Cadastrar';
       document.getElementById('auth-erro').innerHTML = '';
     }
@@ -319,9 +381,14 @@
       const erroDiv = document.getElementById('auth-erro');
       erroDiv.innerHTML = '';
       if (!nome || !senha) {
-        erroDiv.innerHTML = '<p class="erro">Preencha nome e senha.</p>';
+        erroDiv.innerHTML = '<div class="alerta-erro">Preencha nome e senha.</div>';
         return;
       }
+
+      const botao = document.getElementById('botao-auth');
+      const textoOriginal = botao.textContent;
+      botao.disabled = true;
+      botao.textContent = abaAtual === 'login' ? 'Entrando...' : 'Cadastrando...';
 
       const rota = abaAtual === 'login' ? '/auth/login' : '/auth/cadastro';
       try {
@@ -334,7 +401,9 @@
         if (data.erro) throw new Error(data.erro);
         entrarNaTelaApp(data.nome);
       } catch (e) {
-        erroDiv.innerHTML = `<p class="erro">${e.message}</p>`;
+        erroDiv.innerHTML = `<div class="alerta-erro">${e.message}</div>`;
+        botao.disabled = false;
+        botao.textContent = textoOriginal;
       }
     }
 
@@ -350,8 +419,8 @@
     verificarSessao();
 
     function mostrarAbaApp(aba) {
-      document.getElementById('aba-processar').className = aba === 'processar' ? '' : 'secundario';
-      document.getElementById('aba-meusleads').className = aba === 'meusleads' ? '' : 'secundario';
+      document.getElementById('aba-processar').classList.toggle('ativa', aba === 'processar');
+      document.getElementById('aba-meusleads').classList.toggle('ativa', aba === 'meusleads');
       document.getElementById('view-processar').style.display = aba === 'processar' ? '' : 'none';
       document.getElementById('view-meusleads').style.display = aba === 'meusleads' ? '' : 'none';
       if (aba === 'meusleads') carregarMeusLeads();
