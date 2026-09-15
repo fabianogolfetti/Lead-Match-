@@ -12,6 +12,12 @@ const { pool, migrar } = require('./database');
 const { extrairLead } = require('./extraction');
 const { encontrarMatches } = require('./matching');
 const { router: authRouter, exigirLogin } = require('./auth');
+const {
+  listarCategorias,
+  garantirCategorias,
+  definirCategoriasDoLead,
+  buscarLeadComCategorias,
+} = require('./categorias');
 
 const app = express();
 app.use(express.json());
@@ -28,6 +34,39 @@ app.use(
 );
 app.use('/auth', authRouter);
 app.use(express.static('public'));
+
+// Lista as categorias (etiquetas) do corretor logado.
+app.get('/categorias', exigirLogin, async (req, res) => {
+  try {
+    const categorias = await listarCategorias(req.session.corretorId);
+    res.json(categorias);
+  } catch (erro) {
+    console.error(erro);
+    res.status(500).json({ erro: erro.message });
+  }
+});
+
+// Questionário do primeiro login: moldes que o corretor trabalha + palavras-chave
+// próprias viram categorias automaticamente. "Pular" também é uma resposta válida
+// (moldes e palavrasChave vazios), só marca o onboarding como concluído.
+app.post('/onboarding', exigirLogin, async (req, res) => {
+  try {
+    const { moldes, palavrasChave } = req.body;
+    const nomes = [...(Array.isArray(moldes) ? moldes : []), ...(Array.isArray(palavrasChave) ? palavrasChave : [])];
+
+    if (nomes.length) {
+      await garantirCategorias(req.session.corretorId, nomes);
+    }
+    await pool.query('UPDATE corretores SET onboarding_concluido = true WHERE id = $1', [req.session.corretorId]);
+    req.session.onboardingConcluido = true;
+
+    const categorias = await listarCategorias(req.session.corretorId);
+    res.json({ ok: true, categorias });
+  } catch (erro) {
+    console.error(erro);
+    res.status(500).json({ erro: erro.message });
+  }
+});
 
 // Passo 2: recebe o texto solto da mensagem e devolve os dados já organizados
 // pela IA, junto com a lista de campos que ficaram faltando.
@@ -52,7 +91,7 @@ app.post('/leads', exigirLogin, async (req, res) => {
     const {
       nome, papel, tipo, cidade, etiqueta,
       area_m2, valor_total, toneladas, preco_kg,
-      comprimento_m, largura_m, mensagemOriginal,
+      comprimento_m, largura_m, mensagemOriginal, categorias,
     } = req.body;
 
     if (!papel || !tipo) {
@@ -81,7 +120,13 @@ app.post('/leads', exigirLogin, async (req, res) => {
       ]
     );
 
-    const leadSalvo = resultado.rows[0];
+    const leadId = resultado.rows[0].id;
+    if (Array.isArray(categorias) && categorias.length) {
+      const ids = await garantirCategorias(req.session.corretorId, categorias);
+      await definirCategoriasDoLead(leadId, ids);
+    }
+
+    const leadSalvo = await buscarLeadComCategorias(leadId);
     const matches = await encontrarMatches(leadSalvo);
 
     res.json({ lead: leadSalvo, matches });
@@ -95,7 +140,13 @@ app.post('/leads', exigirLogin, async (req, res) => {
 app.get('/leads', exigirLogin, async (req, res) => {
   try {
     const resultado = await pool.query(
-      'SELECT * FROM leads WHERE corretor_id = $1 ORDER BY id DESC',
+      `SELECT l.*, COALESCE(array_agg(c.nome ORDER BY c.nome) FILTER (WHERE c.nome IS NOT NULL), '{}') AS categorias
+       FROM leads l
+       LEFT JOIN lead_categorias lc ON lc.lead_id = l.id
+       LEFT JOIN categorias c ON c.id = lc.categoria_id
+       WHERE l.corretor_id = $1
+       GROUP BY l.id
+       ORDER BY l.id DESC`,
       [req.session.corretorId]
     );
     res.json(resultado.rows);
@@ -129,7 +180,7 @@ app.put('/leads/:id', exigirLogin, async (req, res) => {
     const {
       nome, papel, tipo, cidade, etiqueta,
       area_m2, valor_total, toneladas, preco_kg,
-      comprimento_m, largura_m,
+      comprimento_m, largura_m, categorias,
     } = req.body;
 
     if (!papel || !tipo) {
@@ -142,7 +193,7 @@ app.put('/leads/:id', exigirLogin, async (req, res) => {
          area_m2 = $6, valor_total = $7, toneladas = $8, preco_kg = $9,
          comprimento_m = $10, largura_m = $11
        WHERE id = $12 AND corretor_id = $13
-       RETURNING *`,
+       RETURNING id`,
       [
         nome || null,
         papel,
@@ -160,9 +211,15 @@ app.put('/leads/:id', exigirLogin, async (req, res) => {
       ]
     );
 
-    const leadSalvo = resultado.rows[0];
-    if (!leadSalvo) return res.status(404).json({ erro: 'Lead não encontrado.' });
+    if (!resultado.rows[0]) return res.status(404).json({ erro: 'Lead não encontrado.' });
+    const leadId = resultado.rows[0].id;
 
+    const ids = Array.isArray(categorias) && categorias.length
+      ? await garantirCategorias(req.session.corretorId, categorias)
+      : [];
+    await definirCategoriasDoLead(leadId, ids);
+
+    const leadSalvo = await buscarLeadComCategorias(leadId);
     const matches = await encontrarMatches(leadSalvo);
     res.json({ lead: leadSalvo, matches });
   } catch (erro) {

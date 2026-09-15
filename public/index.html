@@ -255,6 +255,52 @@
 
   .lead-matches { margin-top: -2px; }
   .lead-matches .match { margin-top: 6px; }
+
+  input[type="checkbox"] { width: auto; }
+
+  .opcao-checkbox {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 14px;
+    color: var(--text);
+    margin-top: 8px;
+    margin-right: 14px;
+  }
+
+  .tag-removivel {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 6px 4px 10px;
+    border-radius: 999px;
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    font-size: 12px;
+    color: var(--text);
+    margin: 6px 6px 0 0;
+  }
+  .tag-removivel button {
+    all: unset;
+    cursor: pointer;
+    color: var(--text-muted);
+    font-weight: 700;
+    padding: 0 4px;
+  }
+
+  .chip-pequeno { padding: 2px 8px; font-size: 10px; }
+
+  /* input ao lado de um botão de ação: o input ocupa o espaço disponível,
+     o botão nunca quebra linha (senão o texto do botão espreme e quebra) */
+  .linha-input-botao { display: flex; gap: 6px; margin-top: 6px; }
+  .linha-input-botao input { flex: 1; min-width: 0; }
+  .linha-input-botao button { flex-shrink: 0; white-space: nowrap; }
+
+  /* telas estreitas: abas com texto maior que o espaço quebram linha e
+     ficam com altura desigual — reduz fonte/padding pra caber numa linha */
+  @media (max-width: 400px) {
+    .abas button { font-size: 13px; padding: 10px 6px; }
+  }
 </style>
 </head>
 <body>
@@ -271,12 +317,44 @@
         <button id="aba-cadastro" onclick="mostrarAba('cadastro')">Cadastrar</button>
       </div>
       <div class="card">
-        <label>Nome</label>
-        <input id="auth_nome" placeholder="seu nome">
+        <div id="campo-nome-auth" style="display:none">
+          <label>Nome</label>
+          <input id="auth_nome" placeholder="seu nome">
+        </div>
+        <label>E-mail</label>
+        <input id="auth_email" type="email" placeholder="seu@email.com">
         <label>Senha</label>
         <input id="auth_senha" type="password" placeholder="sua senha">
         <button id="botao-auth" onclick="enviarAuth()">Entrar</button>
         <div id="auth-erro"></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="tela-onboarding" style="display:none">
+    <div class="auth-caixa" style="max-width:420px;">
+      <div class="auth-titulo">
+        <img src="/icons/icon-192.png" alt="" class="logo">
+        <h1>Quase lá</h1>
+      </div>
+      <p>Isso ajuda a sugerir etiquetas automaticamente quando você cadastra um lead.</p>
+      <div class="card">
+        <label>Com o que você trabalha?</label>
+        <div class="filtros">
+          <label class="opcao-checkbox"><input type="checkbox" value="terreno" class="onboarding-molde"> Terreno</label>
+          <label class="opcao-checkbox"><input type="checkbox" value="ferro_lote" class="onboarding-molde"> Ferro em lote</label>
+          <label class="opcao-checkbox"><input type="checkbox" value="estrutura_metalica" class="onboarding-molde"> Estrutura metálica</label>
+          <label class="opcao-checkbox"><input type="checkbox" class="onboarding-molde-outro"> Outro (descreva abaixo)</label>
+        </div>
+
+        <label>Palavras-chave que quer acompanhar (opcional)</label>
+        <input id="onboarding-palavra-input" placeholder="digite e pressione Enter"
+               onkeydown="if(event.key==='Enter'){event.preventDefault();adicionarPalavraChaveOnboarding();}">
+        <div id="onboarding-palavras-chips"></div>
+
+        <button id="botao-onboarding" onclick="enviarOnboarding()">Continuar</button>
+        <button class="secundario" onclick="pularOnboarding()">Pular por enquanto</button>
+        <div id="onboarding-erro"></div>
       </div>
     </div>
   </div>
@@ -304,6 +382,8 @@
 
     <div id="view-meusleads" style="display:none">
       <input id="busca-leads" placeholder="Buscar por nome ou cidade..." oninput="renderizarLeads()">
+
+      <div class="filtros" id="filtros-categoria"></div>
 
       <div class="filtros" id="filtros-papel">
         <button class="chip-filtro ativo" data-valor="todos" onclick="definirFiltroPapel('todos', this)">Todos</button>
@@ -337,6 +417,10 @@
     let leadsCache = [];
     let filtroPapel = 'todos';
     let filtroTipo = 'todos';
+    let filtroCategoria = 'todos';
+    let categoriasCache = [];
+    let palavrasChaveOnboarding = [];
+    let nomeCorretorAtual = '';
 
     const tipoLabel = {
       terreno: 'Terreno',
@@ -354,34 +438,63 @@
       const res = await fetch('/auth/me');
       const data = await res.json();
       if (data.logado) {
-        entrarNaTelaApp(data.nome);
+        entrarNaTelaApp(data.nome, data.onboardingConcluido);
       } else {
         document.getElementById('tela-auth').style.display = '';
+        document.getElementById('tela-onboarding').style.display = 'none';
         document.getElementById('tela-app').style.display = 'none';
       }
     }
 
-    function entrarNaTelaApp(nome) {
+    function entrarNaTelaApp(nome, onboardingConcluido) {
+      nomeCorretorAtual = nome;
       document.getElementById('tela-auth').style.display = 'none';
+      if (!onboardingConcluido) {
+        document.getElementById('tela-onboarding').style.display = '';
+        return;
+      }
+      mostrarTelaApp(nome);
+    }
+
+    async function mostrarTelaApp(nome) {
+      document.getElementById('tela-onboarding').style.display = 'none';
       document.getElementById('tela-app').style.display = '';
       document.getElementById('corretor-nome').textContent = nome;
+      await carregarCategorias();
     }
+
+    // mesmas regras validadas no servidor (auth.js); aqui é só pra dar
+    // feedback rápido sem esperar o round-trip.
+    const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const SENHA_REGEX = /^(?=.*[A-Z])(?=.*\d).{8,}$/;
 
     function mostrarAba(aba) {
       abaAtual = aba;
       document.getElementById('aba-login').classList.toggle('ativa', aba === 'login');
       document.getElementById('aba-cadastro').classList.toggle('ativa', aba === 'cadastro');
       document.getElementById('botao-auth').textContent = aba === 'login' ? 'Entrar' : 'Cadastrar';
+      document.getElementById('campo-nome-auth').style.display = aba === 'cadastro' ? '' : 'none';
+      document.getElementById('auth_senha').placeholder = aba === 'cadastro' ? 'mín. 8 caracteres, 1 maiúscula, 1 número' : 'sua senha';
       document.getElementById('auth-erro').innerHTML = '';
     }
 
     async function enviarAuth() {
       const nome = document.getElementById('auth_nome').value.trim();
+      const email = document.getElementById('auth_email').value.trim();
       const senha = document.getElementById('auth_senha').value;
       const erroDiv = document.getElementById('auth-erro');
       erroDiv.innerHTML = '';
-      if (!nome || !senha) {
-        erroDiv.innerHTML = '<div class="alerta-erro">Preencha nome e senha.</div>';
+
+      if (!email || !senha || (abaAtual === 'cadastro' && !nome)) {
+        erroDiv.innerHTML = '<div class="alerta-erro">Preencha todos os campos.</div>';
+        return;
+      }
+      if (!EMAIL_REGEX.test(email)) {
+        erroDiv.innerHTML = '<div class="alerta-erro">Informe um e-mail válido (com @ e domínio, ex: nome@exemplo.com).</div>';
+        return;
+      }
+      if (abaAtual === 'cadastro' && !SENHA_REGEX.test(senha)) {
+        erroDiv.innerHTML = '<div class="alerta-erro">A senha precisa ter no mínimo 8 caracteres, com pelo menos 1 letra maiúscula e 1 número.</div>';
         return;
       }
 
@@ -391,15 +504,16 @@
       botao.textContent = abaAtual === 'login' ? 'Entrando...' : 'Cadastrando...';
 
       const rota = abaAtual === 'login' ? '/auth/login' : '/auth/cadastro';
+      const payload = abaAtual === 'login' ? { email, senha } : { nome, email, senha };
       try {
         const res = await fetch(rota, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ nome, senha }),
+          body: JSON.stringify(payload),
         });
         const data = await res.json();
         if (data.erro) throw new Error(data.erro);
-        entrarNaTelaApp(data.nome);
+        entrarNaTelaApp(data.nome, data.onboardingConcluido);
       } catch (e) {
         erroDiv.innerHTML = `<div class="alerta-erro">${e.message}</div>`;
         botao.disabled = false;
@@ -410,10 +524,69 @@
     async function sair() {
       await fetch('/auth/logout', { method: 'POST' });
       document.getElementById('auth_nome').value = '';
+      document.getElementById('auth_email').value = '';
       document.getElementById('auth_senha').value = '';
       document.getElementById('resultado').innerHTML = '';
       leadsCache = [];
+      categoriasCache = [];
       verificarSessao();
+    }
+
+    function adicionarPalavraChaveOnboarding() {
+      const input = document.getElementById('onboarding-palavra-input');
+      const valor = input.value.trim();
+      input.value = '';
+      if (!valor || palavrasChaveOnboarding.includes(valor)) return;
+      palavrasChaveOnboarding.push(valor);
+      renderizarPalavrasChaveOnboarding();
+    }
+
+    function removerPalavraChaveOnboarding(valor) {
+      palavrasChaveOnboarding = palavrasChaveOnboarding.filter(p => p !== valor);
+      renderizarPalavrasChaveOnboarding();
+    }
+
+    function renderizarPalavrasChaveOnboarding() {
+      document.getElementById('onboarding-palavras-chips').innerHTML = palavrasChaveOnboarding.map(p => `
+        <span class="tag-removivel">${p}<button type="button" onclick='removerPalavraChaveOnboarding(${JSON.stringify(p)})'>×</button></span>
+      `).join('');
+    }
+
+    async function enviarOnboarding() {
+      const moldes = [...document.querySelectorAll('.onboarding-molde:checked')].map(el => el.value);
+      const erroDiv = document.getElementById('onboarding-erro');
+      erroDiv.innerHTML = '';
+
+      const botao = document.getElementById('botao-onboarding');
+      botao.disabled = true;
+      botao.textContent = 'Salvando...';
+
+      try {
+        const res = await fetch('/onboarding', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ moldes, palavrasChave: palavrasChaveOnboarding }),
+        });
+        if (res.status === 401) return verificarSessao();
+        const data = await res.json();
+        if (data.erro) throw new Error(data.erro);
+        categoriasCache = data.categorias;
+        mostrarTelaApp(nomeCorretorAtual);
+      } catch (e) {
+        erroDiv.innerHTML = `<div class="alerta-erro">${e.message}</div>`;
+      } finally {
+        botao.disabled = false;
+        botao.textContent = 'Continuar';
+      }
+    }
+
+    async function pularOnboarding() {
+      await fetch('/onboarding', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ moldes: [], palavrasChave: [] }),
+      });
+      mostrarTelaApp(nomeCorretorAtual);
     }
 
     verificarSessao();
@@ -449,6 +622,30 @@
       renderizarLeads();
     }
 
+    async function carregarCategorias() {
+      const res = await fetch('/categorias');
+      if (res.status === 401) return verificarSessao();
+      categoriasCache = await res.json();
+      renderizarFiltrosCategoria();
+    }
+
+    function renderizarFiltrosCategoria() {
+      const container = document.getElementById('filtros-categoria');
+      if (!container) return;
+      const chipTodas = `<button class="chip-filtro${filtroCategoria === 'todos' ? ' ativo' : ''}" data-valor="todos" onclick="definirFiltroCategoria('todos', this)">Todas</button>`;
+      const chips = categoriasCache.map(c => `
+        <button class="chip-filtro${filtroCategoria === c.nome ? ' ativo' : ''}" data-valor="${c.nome}" onclick='definirFiltroCategoria(${JSON.stringify(c.nome)}, this)'>${tipoLabel[c.nome] || c.nome}</button>
+      `).join('');
+      container.innerHTML = chipTodas + chips;
+    }
+
+    function definirFiltroCategoria(valor, botao) {
+      filtroCategoria = valor;
+      document.querySelectorAll('#filtros-categoria .chip-filtro').forEach(b => b.classList.remove('ativo'));
+      botao.classList.add('ativo');
+      renderizarLeads();
+    }
+
     function valorPrincipal(lead) {
       if (lead.tipo === 'ferro_lote') return lead.preco_kg;
       return lead.valor_total;
@@ -469,6 +666,7 @@
       let leads = leadsCache.filter(lead => {
         if (filtroPapel !== 'todos' && lead.papel !== filtroPapel) return false;
         if (filtroTipo !== 'todos' && lead.tipo !== filtroTipo) return false;
+        if (filtroCategoria !== 'todos' && !(lead.categorias || []).includes(filtroCategoria)) return false;
         if (busca) {
           const nome = (lead.nome || '').toLowerCase();
           const cidade = (lead.cidade || '').toLowerCase();
@@ -502,6 +700,7 @@
               <span class="lead-valor">${formatarValor(lead)}</span>
             </div>
           </div>
+          ${(lead.categorias && lead.categorias.length) ? `<div class="lead-info">${lead.categorias.map(c => `<span class="chip chip-pequeno">${tipoLabel[c] || c}</span>`).join('')}</div>` : ''}
           <div class="lead-card-acoes">
             <button class="secundario btn-mini" onclick="verMatches(${lead.id})">Ver matches</button>
             <button class="secundario btn-mini" onclick="editarLead(${lead.id})">Editar</button>
@@ -564,7 +763,7 @@
         comprimento_m: lead.comprimento_m, largura_m: lead.largura_m,
       };
       mostrarAbaApp('processar');
-      mostrarFormularioConfirmacao(dadosAtuais, lead.mensagem_original || '', lead.id);
+      mostrarFormularioConfirmacao(dadosAtuais, lead.mensagem_original || '', lead.id, lead.categorias || []);
     }
 
     async function processar() {
@@ -600,7 +799,7 @@
       mostrarFormularioConfirmacao(dadosAtuais, '(preenchido manualmente, sem IA)');
     }
 
-    function mostrarFormularioConfirmacao(dados, mensagemOriginal, idEdicao = null) {
+    function mostrarFormularioConfirmacao(dados, mensagemOriginal, idEdicao = null, categoriasAtivas = null) {
       const campos = Object.keys(dados).filter(k => k !== 'campos_faltando');
       let html = `<div class="card"><h3>${idEdicao ? 'Editar lead' : 'Confira e confirme'}:</h3>`;
       if (dados.campos_faltando && dados.campos_faltando.length) {
@@ -614,8 +813,79 @@
         const placeholder = dicas[campo] ? ` placeholder="${dicas[campo]}"` : '';
         html += `<label>${campo}</label><input id="campo_${campo}" value="${dados[campo] ?? ''}"${placeholder}>`;
       });
+
+      const ativas = categoriasAtivas || sugerirCategorias(dados, mensagemOriginal);
+      html += '<label>Categorias</label><div class="filtros" id="categorias-lead">';
+      html += categoriasCache.map(c => {
+        const ativo = ativas.includes(c.nome) ? ' ativo' : '';
+        return `<button type="button" class="chip-filtro${ativo}" data-nome="${c.nome}" onclick="this.classList.toggle('ativo')">${tipoLabel[c.nome] || c.nome}</button>`;
+      }).join('');
+      html += '</div>';
+      html += `
+        <div class="linha-input-botao">
+          <input id="nova-categoria-lead" placeholder="nova categoria..."
+                 onkeydown="if(event.key==='Enter'){event.preventDefault();adicionarNovaCategoriaAoForm();}">
+          <button type="button" class="secundario btn-mini" onclick="adicionarNovaCategoriaAoForm()">+ Adicionar</button>
+        </div>`;
+
       html += `<button onclick='confirmar(${JSON.stringify(mensagemOriginal)}, ${idEdicao ?? 'null'})'>${idEdicao ? 'Salvar alterações' : 'Confirmar lead'}</button></div>`;
       document.getElementById('resultado').innerHTML = html;
+
+      religarSugestaoCategorias(dados);
+    }
+
+    // compara o texto do lead (mensagem + campos) com o nome de cada categoria
+    // do corretor; usado pra pré-marcar sugestões automaticamente.
+    function sugerirCategorias(dados, mensagemOriginal) {
+      const texto = [mensagemOriginal, dados.nome, dados.cidade, dados.tipo, dados.etiqueta]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase();
+      return categoriasCache.filter(c => texto.includes(c.nome.toLowerCase())).map(c => c.nome);
+    }
+
+    // reavalia as sugestões conforme o corretor digita (preenchimento manual);
+    // só ATIVA chips que passam a bater, nunca desativa o que o corretor já escolheu.
+    function religarSugestaoCategorias(dados) {
+      const campos = Object.keys(dados).filter(k => k !== 'campos_faltando');
+      campos.forEach(campo => {
+        const el = document.getElementById(`campo_${campo}`);
+        if (el) el.addEventListener('input', atualizarSugestoesCategorias);
+      });
+    }
+
+    function atualizarSugestoesCategorias() {
+      const container = document.getElementById('categorias-lead');
+      if (!container || !dadosAtuais) return;
+      const campos = Object.keys(dadosAtuais).filter(k => k !== 'campos_faltando');
+      const texto = campos.map(c => document.getElementById(`campo_${c}`)?.value || '').join(' ').toLowerCase();
+      container.querySelectorAll('.chip-filtro').forEach(botao => {
+        const nome = (botao.dataset.nome || '').toLowerCase();
+        if (nome && texto.includes(nome)) botao.classList.add('ativo');
+      });
+    }
+
+    function adicionarNovaCategoriaAoForm() {
+      const input = document.getElementById('nova-categoria-lead');
+      const nome = input.value.trim();
+      if (!nome) return;
+      input.value = '';
+
+      const container = document.getElementById('categorias-lead');
+      const existente = [...container.querySelectorAll('.chip-filtro')]
+        .find(b => (b.dataset.nome || '').toLowerCase() === nome.toLowerCase());
+      if (existente) {
+        existente.classList.add('ativo');
+        return;
+      }
+
+      const botao = document.createElement('button');
+      botao.type = 'button';
+      botao.className = 'chip-filtro ativo';
+      botao.dataset.nome = nome;
+      botao.textContent = nome;
+      botao.onclick = () => botao.classList.toggle('ativo');
+      container.appendChild(botao);
     }
 
     async function confirmar(mensagemOriginal, idEdicao) {
@@ -626,6 +896,7 @@
         payload[campo] = valor === '' ? null : (isNaN(valor) ? valor : Number(valor));
       });
       payload.mensagemOriginal = mensagemOriginal;
+      payload.categorias = [...document.querySelectorAll('#categorias-lead .chip-filtro.ativo')].map(b => b.dataset.nome);
 
       const url = idEdicao ? `/leads/${idEdicao}` : '/leads';
       const metodo = idEdicao ? 'PUT' : 'POST';
@@ -653,6 +924,9 @@
       }
       html += '</div>';
       document.getElementById('resultado').innerHTML = html;
+
+      // recarrega o cache de categorias (pode ter criado uma nova agora)
+      await carregarCategorias();
     }
   </script>
 </body>
