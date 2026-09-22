@@ -5,19 +5,32 @@
 
 require('dotenv').config();
 
-const SYSTEM_PROMPT = `Você lê mensagens informais de corretores (imóveis, ferro e aço, estrutura metálica)
+const { TIPOS_LEAD } = require('./categorias-config');
+
+// gera a lista de moldes do prompt direto de categorias-config.js — um tipo
+// novo ali já aparece aqui sozinho, sem precisar editar este texto na mão.
+function descreverMoldes() {
+  return Object.entries(TIPOS_LEAD)
+    .map(([tipo, definicao], indice) => {
+      const campos = Object.entries(definicao.campos)
+        .map(([campo, meta]) => (meta.opcional ? `${campo} (opcional)` : campo))
+        .join(', ');
+      return `${indice + 1}) ${tipo} (${definicao.label}): { tipo: "${tipo}", nome, papel, cidade, ${campos} }`;
+    })
+    .join('\n');
+}
+
+const SYSTEM_PROMPT = `Você lê mensagens informais de corretores/vendedores (terrenos, ferro e aço, plástico, carros)
 e extrai os dados do lead em JSON. A mensagem pode estar torta, sem formatação, com gírias.
 
-Existem 3 "moldes" possíveis. Identifique qual se aplica e preencha SOMENTE os campos daquele molde:
+Existem ${Object.keys(TIPOS_LEAD).length} "moldes" possíveis. Identifique qual se aplica e preencha SOMENTE os campos daquele molde:
 
-1) terreno: { tipo: "terreno", nome, papel, cidade, etiqueta (industrial/residencial/null), area_m2, valor_total }
-2) ferro_lote: { tipo: "ferro_lote", nome, papel, cidade, toneladas, preco_kg }
-3) estrutura_metalica: { tipo: "estrutura_metalica", nome, papel, cidade, comprimento_m, largura_m, valor_total }
+${descreverMoldes()}
 
 papel deve ser "comprador" ou "vendedor".
 Se um campo não aparecer na mensagem, deixe null.
 Sempre inclua um campo "campos_faltando": lista dos nomes de campo que ficaram null e são importantes
-(nome, cidade, e os campos numéricos do molde escolhido).
+(nome, cidade, e os campos não opcionais do molde escolhido).
 
 Responda APENAS com o JSON, sem nenhum texto antes ou depois.`;
 

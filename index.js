@@ -18,6 +18,14 @@ const {
   definirCategoriasDoLead,
   buscarLeadComCategorias,
 } = require('./categorias');
+const { TIPOS_LEAD } = require('./categorias-config');
+
+// todos os campos específicos de qualquer tipo, sem repetir (ex: "preco_kg"
+// aparece em mais de um tipo) — usado pra montar o INSERT/UPDATE de leads
+// sem precisar listar campo por campo aqui.
+const CAMPOS_ESPECIFICOS = [
+  ...new Set(Object.values(TIPOS_LEAD).flatMap((definicao) => Object.keys(definicao.campos))),
+];
 
 const app = express();
 app.use(express.json());
@@ -34,6 +42,12 @@ app.use(
 );
 app.use('/auth', authRouter);
 app.use(express.static('public'));
+
+// Descreve os tipos de lead disponíveis (campos, labels, campo de valor) pra
+// o formulário se montar sozinho, sem hardcode no front.
+app.get('/tipos-lead', exigirLogin, (req, res) => {
+  res.json(TIPOS_LEAD);
+});
 
 // Lista as categorias (etiquetas) do corretor logado.
 app.get('/categorias', exigirLogin, async (req, res) => {
@@ -88,36 +102,31 @@ app.post('/processar-mensagem', exigirLogin, async (req, res) => {
 // retorna os matches (só entre leads do próprio corretor).
 app.post('/leads', exigirLogin, async (req, res) => {
   try {
-    const {
-      nome, papel, tipo, cidade, etiqueta,
-      area_m2, valor_total, toneladas, preco_kg,
-      comprimento_m, largura_m, mensagemOriginal, categorias,
-    } = req.body;
+    const { nome, papel, tipo, cidade, mensagemOriginal, categorias } = req.body;
 
     if (!papel || !tipo) {
       return res.status(400).json({ erro: 'papel e tipo são obrigatórios.' });
     }
+    if (!String(req.body.descricao ?? '').trim()) {
+      return res.status(400).json({ erro: 'descrição é obrigatória.' });
+    }
+
+    const colunas = ['corretor_id', 'nome', 'papel', 'tipo', 'cidade', ...CAMPOS_ESPECIFICOS, 'mensagem_original', 'confirmado'];
+    const valores = [
+      req.session.corretorId,
+      nome || null,
+      papel,
+      tipo,
+      cidade || null,
+      ...CAMPOS_ESPECIFICOS.map((campo) => req.body[campo] ?? null),
+      mensagemOriginal || null,
+      1,
+    ];
+    const marcadores = valores.map((_, i) => `$${i + 1}`).join(', ');
 
     const resultado = await pool.query(
-      `INSERT INTO leads
-       (corretor_id, nome, papel, tipo, cidade, etiqueta, area_m2, valor_total, toneladas, preco_kg, comprimento_m, largura_m, mensagem_original, confirmado)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, 1)
-       RETURNING *`,
-      [
-        req.session.corretorId,
-        nome || null,
-        papel,
-        tipo,
-        cidade || null,
-        etiqueta || null,
-        area_m2 || null,
-        valor_total || null,
-        toneladas || null,
-        preco_kg || null,
-        comprimento_m || null,
-        largura_m || null,
-        mensagemOriginal || null,
-      ]
+      `INSERT INTO leads (${colunas.join(', ')}) VALUES (${marcadores}) RETURNING *`,
+      valores
     );
 
     const leadId = resultado.rows[0].id;
@@ -177,38 +186,31 @@ app.get('/leads/:id/matches', exigirLogin, async (req, res) => {
 // Edição de um lead já salvo, reaproveitando a mesma validação/formato do cadastro.
 app.put('/leads/:id', exigirLogin, async (req, res) => {
   try {
-    const {
-      nome, papel, tipo, cidade, etiqueta,
-      area_m2, valor_total, toneladas, preco_kg,
-      comprimento_m, largura_m, categorias,
-    } = req.body;
+    const { nome, papel, tipo, cidade, categorias } = req.body;
 
     if (!papel || !tipo) {
       return res.status(400).json({ erro: 'papel e tipo são obrigatórios.' });
     }
+    if (!String(req.body.descricao ?? '').trim()) {
+      return res.status(400).json({ erro: 'descrição é obrigatória.' });
+    }
+
+    // sempre grava todos os campos específicos (não só os do tipo atual):
+    // se o lead mudou de tipo na edição, os campos do tipo antigo (que não
+    // vêm mais no payload) precisam mesmo ser zerados, não ficar esquecidos.
+    const colunas = ['nome', 'papel', 'tipo', 'cidade', ...CAMPOS_ESPECIFICOS];
+    const valores = [
+      nome || null,
+      papel,
+      tipo,
+      cidade || null,
+      ...CAMPOS_ESPECIFICOS.map((campo) => req.body[campo] ?? null),
+    ];
+    const setSql = colunas.map((coluna, i) => `${coluna} = $${i + 1}`).join(', ');
 
     const resultado = await pool.query(
-      `UPDATE leads SET
-         nome = $1, papel = $2, tipo = $3, cidade = $4, etiqueta = $5,
-         area_m2 = $6, valor_total = $7, toneladas = $8, preco_kg = $9,
-         comprimento_m = $10, largura_m = $11
-       WHERE id = $12 AND corretor_id = $13
-       RETURNING id`,
-      [
-        nome || null,
-        papel,
-        tipo,
-        cidade || null,
-        etiqueta || null,
-        area_m2 || null,
-        valor_total || null,
-        toneladas || null,
-        preco_kg || null,
-        comprimento_m || null,
-        largura_m || null,
-        req.params.id,
-        req.session.corretorId,
-      ]
+      `UPDATE leads SET ${setSql} WHERE id = $${valores.length + 1} AND corretor_id = $${valores.length + 2} RETURNING id`,
+      [...valores, req.params.id, req.session.corretorId]
     );
 
     if (!resultado.rows[0]) return res.status(404).json({ erro: 'Lead não encontrado.' });

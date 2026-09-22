@@ -33,7 +33,7 @@ com a IA extraindo os dados automaticamente a partir da mensagem de texto.
 4. Abra `http://localhost:3000` no navegador. Cole uma mensagem de teste,
    clique em "Processar mensagem", confira os dados que a IA extraiu,
    ajuste se precisar, e clique em "Confirmar lead". Se já tiver outro
-   lead do papel oposto (comprador/vendedor) na mesma cidade e tipo,
+   lead do papel oposto (comprador/vendedor) na mesma cidade e categoria (valor aproximado mais próximo primeiro),
    o match aparece na hora.
 
 ## Estrutura do projeto

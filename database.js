@@ -5,6 +5,7 @@
 // (ou outro, ex. Neon); em dev local, pro Postgres que você tiver rodando.
 
 const { Pool } = require('pg');
+const { TIPOS_LEAD } = require('./categorias-config');
 
 const ehLocal = /localhost|127\.0\.0\.1/.test(process.env.DATABASE_URL || '');
 
@@ -39,28 +40,30 @@ async function migrar() {
       corretor_id INTEGER NOT NULL REFERENCES corretores(id),
       nome TEXT,
       papel TEXT NOT NULL,              -- 'comprador' ou 'vendedor'
-      tipo TEXT NOT NULL,               -- 'terreno' | 'ferro_lote' | 'estrutura_metalica'
+      tipo TEXT NOT NULL,               -- chave de TIPOS_LEAD (ver categorias-config.js)
       cidade TEXT,
-      etiqueta TEXT,                    -- ex: industrial, residencial (opcional)
-
-      -- campos específicos de TERRENO
-      area_m2 DOUBLE PRECISION,
-      valor_total DOUBLE PRECISION,
-
-      -- campos específicos de FERRO EM LOTE
-      toneladas DOUBLE PRECISION,
-      preco_kg DOUBLE PRECISION,
-
-      -- campos específicos de ESTRUTURA METÁLICA
-      comprimento_m DOUBLE PRECISION,
-      largura_m DOUBLE PRECISION,
-
       mensagem_original TEXT,
       confirmado INTEGER DEFAULT 0,          -- 0 = aguardando confirmação, 1 = confirmado
       status TEXT NOT NULL DEFAULT 'aberto', -- 'aberto' | 'fechado' (fechado não entra mais no matching)
       criado_em TIMESTAMPTZ NOT NULL DEFAULT now()
     )
   `);
+
+  // campos específicos de cada tipo de lead viram colunas aqui. Cada tipo
+  // novo em TIPOS_LEAD já garante as colunas dele sozinho, sem precisar
+  // mexer neste arquivo.
+  for (const definicao of Object.values(TIPOS_LEAD)) {
+    for (const [campo, meta] of Object.entries(definicao.campos)) {
+      const tipoSql = meta.tipoDado === 'numero' ? 'DOUBLE PRECISION' : 'TEXT';
+      await pool.query(`ALTER TABLE leads ADD COLUMN IF NOT EXISTS ${campo} ${tipoSql}`);
+    }
+  }
+
+  // os vários moldes antigos (terreno, ferro_lote, estrutura_metalica,
+  // ferro_aco, plastico, carro) foram simplificados num único tipo genérico
+  // — migra quem ainda estiver com um tipo diferente do único que existe hoje
+  const [tipoUnico] = Object.keys(TIPOS_LEAD);
+  await pool.query('UPDATE leads SET tipo = $1 WHERE tipo IS DISTINCT FROM $1', [tipoUnico]);
 
   // etiquetas livres do corretor (dos moldes que ele escolheu no onboarding +
   // palavras-chave próprias + qualquer uma criada na hora de marcar um lead)

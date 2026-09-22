@@ -5,19 +5,28 @@
 // corretor: cada corretor só recebe match dos próprios leads.
 
 const { pool } = require('./database');
+const { TIPOS_LEAD } = require('./categorias-config');
 
-// calcula "o quanto esse lead se parece" com o lead novo, olhando o
-// campo de valor mais relevante para o tipo (terreno, ferro ou estrutura)
+// "categoria" é texto livre (o corretor digita) — duas batem se forem iguais
+// (ignorando maiúsculas/espaços) ou se uma contiver a outra, pra pegar casos
+// como "terreno" batendo com "terreno industrial".
+function categoriasCorrespondem(categoriaA, categoriaB) {
+  const a = (categoriaA || '').trim().toLowerCase();
+  const b = (categoriaB || '').trim().toLowerCase();
+  if (!a || !b) return false;
+  return a === b || a.includes(b) || b.includes(a);
+}
+
+// calcula "o quanto esse lead se parece" com o lead novo: só considera leads
+// com categoria correspondente, e dentro desses olha a proximidade do
+// "campoValor" definido pro tipo em categorias-config.js
 function diferencaDeValor(leadA, leadB) {
-  if (leadA.tipo === 'terreno' || leadA.tipo === 'estrutura_metalica') {
-    if (leadA.valor_total == null || leadB.valor_total == null) return Infinity;
-    return Math.abs(leadA.valor_total - leadB.valor_total);
-  }
-  if (leadA.tipo === 'ferro_lote') {
-    if (leadA.preco_kg == null || leadB.preco_kg == null) return Infinity;
-    return Math.abs(leadA.preco_kg - leadB.preco_kg);
-  }
-  return Infinity;
+  if (!categoriasCorrespondem(leadA.categoria, leadB.categoria)) return Infinity;
+
+  const campoValor = TIPOS_LEAD[leadA.tipo] && TIPOS_LEAD[leadA.tipo].campoValor;
+  if (!campoValor) return Infinity;
+  if (leadA[campoValor] == null || leadB[campoValor] == null) return Infinity;
+  return Math.abs(leadA[campoValor] - leadB[campoValor]);
 }
 
 async function encontrarMatches(lead) {
@@ -35,6 +44,9 @@ async function encontrarMatches(lead) {
       ...candidato,
       diferenca: diferencaDeValor(lead, candidato),
     }))
+    // Infinity = categoria não corresponde (ou falta valor) — não é match de
+    // verdade, só serve de "vai pro fim" se eu esquecesse de filtrar
+    .filter((candidato) => candidato.diferenca !== Infinity)
     .sort((a, b) => a.diferenca - b.diferenca)
     .slice(0, 5); // top 5 mais próximos
 }
