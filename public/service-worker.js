@@ -6,8 +6,17 @@
 // manifest, que raramente mudam, usam cache-first normalmente. Rotas de
 // dados (auth, leads, IA) sempre vão pra rede, já que dependem da sessão do
 // corretor logado.
-
-const CACHE_NAME = 'leadmatch-v1';
+//
+// o placeholder abaixo (variável de build, entre chaves duplas de underscore)
+// é substituído pelo servidor com o hash do commit atual (rota GET
+// /service-worker.js em index.js) — sem precisar lembrar de incrementar nada
+// à mão. É essa string mudando a cada deploy que faz o activate() (logo
+// abaixo) de fato encontrar e apagar caches de versões antigas; com o mesmo
+// nome pra sempre, os assets antigos (ícones, manifest) ficariam servidos do
+// cache pra sempre, mesmo depois de trocados no código-fonte. skipWaiting()
+// + clients.claim() fazem o SW novo assumir na hora, sem esperar todas as
+// abas fecharem.
+const CACHE_NAME = 'leadmatch-__VERSAO_BUILD__';
 const ASSETS_PARA_CACHE = ['/manifest.json', '/icons/icon-192.png', '/icons/icon-512.png'];
 
 self.addEventListener('install', (event) => {

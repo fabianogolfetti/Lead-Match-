@@ -5,6 +5,9 @@
 
 require('dotenv').config();
 
+const fs = require('fs');
+const path = require('path');
+const { execSync } = require('child_process');
 const express = require('express');
 const session = require('express-session');
 const pgSession = require('connect-pg-simple')(session);
@@ -19,6 +22,21 @@ const {
   buscarLeadComCategorias,
 } = require('./categorias');
 const { TIPOS_LEAD } = require('./categorias-config');
+
+// identifica a versão do código rodando: hash do commit (Render define essa
+// env var sozinho em produção), senão tenta o git local (dev), senão cai pro
+// horário que o processo subiu — sempre algo que muda a cada deploy/restart,
+// pra versionar o cache do service worker sem precisar lembrar de mexer nisso
+// à mão a cada mudança (ver GET /service-worker.js abaixo).
+function obterVersaoBuild() {
+  if (process.env.RENDER_GIT_COMMIT) return process.env.RENDER_GIT_COMMIT.slice(0, 8);
+  try {
+    return execSync('git rev-parse --short HEAD', { cwd: __dirname }).toString().trim();
+  } catch {
+    return String(Date.now());
+  }
+}
+const VERSAO_BUILD = obterVersaoBuild();
 
 // todos os campos específicos de qualquer tipo, sem repetir (ex: "preco_kg"
 // aparece em mais de um tipo) — usado pra montar o INSERT/UPDATE de leads
@@ -41,6 +59,17 @@ app.use(
   })
 );
 app.use('/auth', authRouter);
+
+// serve o service worker à parte (antes do static) pra injetar VERSAO_BUILD
+// no nome do cache — precisa vir antes de express.static, senão o arquivo
+// estático (com o placeholder não substituído) seria servido primeiro.
+app.get('/service-worker.js', (req, res) => {
+  fs.readFile(path.join(__dirname, 'public', 'service-worker.js'), 'utf8', (erro, conteudo) => {
+    if (erro) return res.status(500).end();
+    res.type('application/javascript').send(conteudo.replaceAll('__VERSAO_BUILD__', VERSAO_BUILD));
+  });
+});
+
 app.use(express.static('public'));
 
 // Descreve os tipos de lead disponíveis (campos, labels, campo de valor) pra
