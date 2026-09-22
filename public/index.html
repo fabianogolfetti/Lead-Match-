@@ -28,6 +28,8 @@
     --amber-dark: #412402;
     --amber-light: #FAC775;
     --erro: #e08066;
+    --verde-aberto: #5FB878;
+    --cinza-fechado: #6b6660;
   }
 
   * { box-sizing: border-box; }
@@ -222,13 +224,14 @@
     flex-direction: column;
     gap: 8px;
     border: 1px solid var(--border);
+    border-left: 4px solid var(--verde-aberto);
     border-radius: 8px;
     padding: 10px 12px;
     margin-top: 8px;
     background: var(--bg-input);
   }
 
-  .lead-card.fechado { opacity: 0.6; }
+  .lead-card.fechado { opacity: 0.6; border-left-color: var(--cinza-fechado); }
 
   .lead-card .lead-card-linha { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; }
 
@@ -301,6 +304,79 @@
   @media (max-width: 400px) {
     .abas button { font-size: 13px; padding: 10px 6px; }
   }
+
+  .avatar-nome { display: flex; align-items: center; gap: 8px; }
+
+  .avatar {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background: var(--amber-light);
+    color: var(--amber-dark);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+
+  #tela-app { padding-bottom: 76px; }
+
+  .bottom-nav {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    display: flex;
+    background: var(--bg-card);
+    border-top: 1px solid var(--border);
+    padding-bottom: env(safe-area-inset-bottom);
+    z-index: 10;
+  }
+
+  .bottom-nav-item {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    padding: 10px 4px 8px;
+    margin: 0;
+    border: none;
+    border-radius: 0;
+    background: transparent;
+    color: var(--text-muted);
+    font-size: 11px;
+    font-weight: 600;
+  }
+
+  .bottom-nav-item svg { width: 22px; height: 22px; stroke: currentColor; fill: none; stroke-width: 2; }
+
+  .bottom-nav-item.ativo { color: var(--amber-light); }
+
+  .dashboard-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-top: 14px;
+  }
+
+  .dashboard-card {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px;
+    background: var(--bg-card);
+  }
+
+  .dashboard-numero { font-size: 28px; font-weight: 700; line-height: 1; }
+
+  .dashboard-label { font-size: 12px; color: var(--text-muted); }
+
+  .dashboard-card.destaque .dashboard-numero { color: var(--amber-light); }
 </style>
 </head>
 <body>
@@ -354,15 +430,38 @@
   <div id="tela-app" style="display:none">
     <div class="topo">
       <h1>LeadMatch</h1>
-      <div><span id="corretor-nome" class="chip"></span> <button class="secundario" onclick="sair()">Sair</button></div>
+      <div style="display:flex; align-items:center; gap:10px;">
+        <div class="avatar-nome">
+          <span id="avatar-corretor" class="avatar"></span>
+          <span id="corretor-nome"></span>
+        </div>
+        <button class="secundario" onclick="sair()">Sair</button>
+      </div>
     </div>
 
-    <div class="abas">
-      <button id="aba-processar" class="ativa" onclick="mostrarAbaApp('processar')">Processar mensagem</button>
-      <button id="aba-meusleads" onclick="mostrarAbaApp('meusleads')">Meus leads</button>
+    <div id="view-inicio">
+      <p>Resumo dos seus leads</p>
+      <div class="dashboard-grid">
+        <div class="dashboard-card">
+          <span class="dashboard-numero" id="dash-total">0</span>
+          <span class="dashboard-label">Total de leads</span>
+        </div>
+        <div class="dashboard-card">
+          <span class="dashboard-numero" id="dash-abertos">0</span>
+          <span class="dashboard-label">Abertos</span>
+        </div>
+        <div class="dashboard-card">
+          <span class="dashboard-numero" id="dash-fechados">0</span>
+          <span class="dashboard-label">Fechados</span>
+        </div>
+        <div class="dashboard-card destaque">
+          <span class="dashboard-numero" id="dash-matches">0</span>
+          <span class="dashboard-label">Com match pendente</span>
+        </div>
+      </div>
     </div>
 
-    <div id="view-processar">
+    <div id="view-processar" style="display:none">
       <p>Cole a mensagem do corretor como ela chegaria no WhatsApp:</p>
       <textarea id="mensagem" placeholder="Ex: tenho um terreno industrial em Atibaia, 6 mil m2, quero 850 mil nele"></textarea>
       <br>
@@ -394,6 +493,21 @@
 
       <div id="lista-leads"></div>
     </div>
+
+    <nav class="bottom-nav">
+      <button id="nav-inicio" class="bottom-nav-item ativo" onclick="mostrarAbaApp('inicio')">
+        <svg viewBox="0 0 24 24"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/></svg>
+        <span>Início</span>
+      </button>
+      <button id="nav-processar" class="bottom-nav-item" onclick="mostrarAbaApp('processar')">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg>
+        <span>Novo lead</span>
+      </button>
+      <button id="nav-meusleads" class="bottom-nav-item" onclick="mostrarAbaApp('meusleads')">
+        <svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h10"/></svg>
+        <span>Meus leads</span>
+      </button>
+    </nav>
   </div>
 
   <script>
@@ -460,7 +574,9 @@
       document.getElementById('tela-onboarding').style.display = 'none';
       document.getElementById('tela-app').style.display = '';
       document.getElementById('corretor-nome').textContent = nome;
+      document.getElementById('avatar-corretor').textContent = (nome || '?').trim().charAt(0).toUpperCase();
       await carregarCategorias();
+      mostrarAbaApp('inicio');
     }
 
     // mesmas regras validadas no servidor (auth.js); aqui é só pra dar
@@ -591,11 +707,59 @@
     verificarSessao();
 
     function mostrarAbaApp(aba) {
-      document.getElementById('aba-processar').classList.toggle('ativa', aba === 'processar');
-      document.getElementById('aba-meusleads').classList.toggle('ativa', aba === 'meusleads');
-      document.getElementById('view-processar').style.display = aba === 'processar' ? '' : 'none';
-      document.getElementById('view-meusleads').style.display = aba === 'meusleads' ? '' : 'none';
+      ['inicio', 'processar', 'meusleads'].forEach(v => {
+        document.getElementById(`nav-${v}`).classList.toggle('ativo', aba === v);
+        document.getElementById(`view-${v}`).style.display = aba === v ? '' : 'none';
+      });
       if (aba === 'meusleads') carregarMeusLeads();
+      if (aba === 'inicio') carregarInicio();
+    }
+
+    // "categoria" é texto livre — mesma regra de correspondência do
+    // matching.js (igual, ou uma contendo a outra), só que calculada aqui
+    // no front pra não precisar de uma rota nova pra alimentar o dashboard.
+    function categoriasCorrespondemFront(categoriaA, categoriaB) {
+      const a = (categoriaA || '').trim().toLowerCase();
+      const b = (categoriaB || '').trim().toLowerCase();
+      if (!a || !b) return false;
+      return a === b || a.includes(b) || b.includes(a);
+    }
+
+    function cidadesCorrespondemFront(cidadeA, cidadeB) {
+      const a = (cidadeA || '').trim().toLowerCase();
+      const b = (cidadeB || '').trim().toLowerCase();
+      return !!a && a === b;
+    }
+
+    // conta quantos leads ABERTOS do corretor têm pelo menos um outro lead
+    // aberto, de papel oposto, mesma cidade e categoria correspondente —
+    // "match em potencial" ainda não fechado. Usa só o array já carregado
+    // de /leads, sem chamar /leads/:id/matches lead por lead.
+    function contarComMatchPendente(leads) {
+      const abertos = leads.filter(l => l.status === 'aberto');
+      return abertos.filter(lead => {
+        const papelOposto = lead.papel === 'comprador' ? 'vendedor' : 'comprador';
+        return abertos.some(outro =>
+          outro.id !== lead.id &&
+          outro.papel === papelOposto &&
+          cidadesCorrespondemFront(lead.cidade, outro.cidade) &&
+          categoriasCorrespondemFront(lead.categoria, outro.categoria)
+        );
+      }).length;
+    }
+
+    async function carregarInicio() {
+      const res = await fetch('/leads');
+      if (res.status === 401) return verificarSessao();
+      leadsCache = await res.json();
+      renderizarDashboard(leadsCache);
+    }
+
+    function renderizarDashboard(leads) {
+      document.getElementById('dash-total').textContent = leads.length;
+      document.getElementById('dash-abertos').textContent = leads.filter(l => l.status === 'aberto').length;
+      document.getElementById('dash-fechados').textContent = leads.filter(l => l.status === 'fechado').length;
+      document.getElementById('dash-matches').textContent = contarComMatchPendente(leads);
     }
 
     async function carregarMeusLeads() {
