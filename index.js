@@ -117,7 +117,7 @@ app.post('/leads', exigirLogin, async (req, res) => {
       nome || null,
       papel,
       tipo,
-      cidade || null,
+      cidade ? cidade.trim() : null,
       ...CAMPOS_ESPECIFICOS.map((campo) => req.body[campo] ?? null),
       mensagemOriginal || null,
       1,
@@ -203,7 +203,7 @@ app.put('/leads/:id', exigirLogin, async (req, res) => {
       nome || null,
       papel,
       tipo,
-      cidade || null,
+      cidade ? cidade.trim() : null,
       ...CAMPOS_ESPECIFICOS.map((campo) => req.body[campo] ?? null),
     ];
     const setSql = colunas.map((coluna, i) => `${coluna} = $${i + 1}`).join(', ');

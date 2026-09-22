@@ -32,9 +32,13 @@ function diferencaDeValor(leadA, leadB) {
 async function encontrarMatches(lead) {
   const papelOposto = lead.papel === 'comprador' ? 'vendedor' : 'comprador';
 
+  // cidade comparada sem diferenciar maiúscula/minúscula nem espaço nas
+  // pontas — mesmo cuidado que já existia pra "categoria", só que faltava
+  // aqui (é o que causava "ver matches" vazio com "Atibaia" vs "Atibaia ")
   const resultado = await pool.query(
     `SELECT * FROM leads
-     WHERE tipo = $1 AND papel = $2 AND confirmado = 1 AND cidade = $3 AND corretor_id = $4 AND status = 'aberto'
+     WHERE tipo = $1 AND papel = $2 AND confirmado = 1 AND corretor_id = $4 AND status = 'aberto'
+       AND LOWER(TRIM(cidade)) = LOWER(TRIM($3))
      ORDER BY id DESC`,
     [lead.tipo, papelOposto, lead.cidade, lead.corretor_id]
   );
