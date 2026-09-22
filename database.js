@@ -45,16 +45,20 @@ async function migrar() {
       mensagem_original TEXT,
       confirmado INTEGER DEFAULT 0,          -- 0 = aguardando confirmação, 1 = confirmado
       status TEXT NOT NULL DEFAULT 'aberto', -- 'aberto' | 'fechado' (fechado não entra mais no matching)
-      criado_em TIMESTAMPTZ NOT NULL DEFAULT now()
+      criado_em TIMESTAMPTZ NOT NULL DEFAULT now(),
+      fechado_em TIMESTAMPTZ             -- quando foi marcado como fechado (pra "atividade recente")
     )
   `);
+  // migração leve: leads já existiam antes dessa coluna
+  await pool.query('ALTER TABLE leads ADD COLUMN IF NOT EXISTS fechado_em TIMESTAMPTZ');
 
   // campos específicos de cada tipo de lead viram colunas aqui. Cada tipo
   // novo em TIPOS_LEAD já garante as colunas dele sozinho, sem precisar
   // mexer neste arquivo.
+  const TIPO_SQL_POR_DADO = { numero: 'DOUBLE PRECISION', data: 'DATE' };
   for (const definicao of Object.values(TIPOS_LEAD)) {
     for (const [campo, meta] of Object.entries(definicao.campos)) {
-      const tipoSql = meta.tipoDado === 'numero' ? 'DOUBLE PRECISION' : 'TEXT';
+      const tipoSql = TIPO_SQL_POR_DADO[meta.tipoDado] || 'TEXT';
       await pool.query(`ALTER TABLE leads ADD COLUMN IF NOT EXISTS ${campo} ${tipoSql}`);
     }
   }

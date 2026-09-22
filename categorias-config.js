@@ -10,7 +10,7 @@
 //   - label: nome exibido no formulário e nos filtros
 //   - campos: um por campo específico do tipo
 //       - label: texto exibido no formulário
-//       - tipoDado: 'numero' | 'texto' — define o tipo da coluna no banco
+//       - tipoDado: 'numero' | 'texto' | 'data' — define o tipo da coluna no banco
 //       - opcional: true se não deve ser cobrado em "campos_faltando" da IA
 //         (o padrão, sem essa chave, é obrigatório)
 //   - campoValor: qual campo usar pra calcular a proximidade de valor no
@@ -23,6 +23,8 @@ const TIPOS_LEAD = {
       descricao: { label: 'Descrição', tipoDado: 'texto' },
       categoria: { label: 'Categoria', tipoDado: 'texto' },
       valor_aproximado: { label: 'Valor aproximado (R$)', tipoDado: 'numero' },
+      proximo_contato: { label: 'Próximo contato', tipoDado: 'data', opcional: true },
+      notas: { label: 'Notas', tipoDado: 'texto', opcional: true },
     },
     campoValor: 'valor_aproximado',
   },

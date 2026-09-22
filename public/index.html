@@ -256,6 +256,18 @@
     font-size: 10px;
   }
 
+  .chip-atrasado {
+    padding: 2px 8px;
+    font-size: 10px;
+    background: var(--erro);
+    border-color: var(--erro);
+    color: var(--bg);
+    font-weight: 700;
+  }
+
+  .lead-notas { display: flex; flex-direction: column; gap: 6px; }
+  .lead-notas textarea { height: 50px; font-size: 13px; }
+
   .lead-matches { margin-top: -2px; }
   .lead-matches .match { margin-top: 6px; }
 
@@ -377,6 +389,29 @@
   .dashboard-label { font-size: 12px; color: var(--text-muted); }
 
   .dashboard-card.destaque .dashboard-numero { color: var(--amber-light); }
+
+  .atividade-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .atividade-item:last-child { border-bottom: none; }
+
+  .atividade-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    margin-top: 6px;
+    flex-shrink: 0;
+  }
+  .atividade-dot.criado { background: var(--verde-aberto); }
+  .atividade-dot.fechado { background: var(--cinza-fechado); }
+  .atividade-dot.match { background: var(--amber-light); }
+
+  .atividade-texto { display: flex; flex-direction: column; gap: 2px; font-size: 13px; }
+  .atividade-data { font-size: 12px; color: var(--text-muted); }
 </style>
 </head>
 <body>
@@ -458,6 +493,11 @@
           <span class="dashboard-numero" id="dash-matches">0</span>
           <span class="dashboard-label">Com match pendente</span>
         </div>
+      </div>
+
+      <div class="card">
+        <h3>Atividade recente</h3>
+        <div id="atividade-recente"><p>Carregando...</p></div>
       </div>
     </div>
 
@@ -760,6 +800,83 @@
       document.getElementById('dash-abertos').textContent = leads.filter(l => l.status === 'aberto').length;
       document.getElementById('dash-fechados').textContent = leads.filter(l => l.status === 'fechado').length;
       document.getElementById('dash-matches').textContent = contarComMatchPendente(leads);
+      renderizarAtividade(leads);
+    }
+
+    // pares de leads que se correspondem (mesma regra do matching.js) viram
+    // um evento "match encontrado", datado do lead mais recente do par —
+    // é quando o par ficou completo. Sem tabela de log: só olha o que já
+    // está em /leads. Cada par conta uma vez só (não A→B e B→A separado).
+    function calcularEventosDeMatch(leads) {
+      const abertos = leads.filter(l => l.status === 'aberto');
+      const eventos = [];
+      const paresVistos = new Set();
+
+      abertos.forEach(lead => {
+        const papelOposto = lead.papel === 'comprador' ? 'vendedor' : 'comprador';
+        abertos.forEach(outro => {
+          if (outro.id === lead.id || outro.papel !== papelOposto) return;
+          if (!cidadesCorrespondemFront(lead.cidade, outro.cidade)) return;
+          if (!categoriasCorrespondemFront(lead.categoria, outro.categoria)) return;
+
+          const chave = [lead.id, outro.id].sort((a, b) => a - b).join('-');
+          if (paresVistos.has(chave)) return;
+          paresVistos.add(chave);
+
+          const data = new Date(Math.max(new Date(lead.criado_em), new Date(outro.criado_em)));
+          eventos.push({
+            tipo: 'match',
+            data,
+            texto: `Match encontrado: ${lead.nome || '(sem nome)'} × ${outro.nome || '(sem nome)'}`,
+          });
+        });
+      });
+
+      return eventos;
+    }
+
+    function formatarDataRelativa(data) {
+      const alvo = new Date(data);
+      const diffMin = Math.floor((Date.now() - alvo.getTime()) / 60000);
+      const diffHoras = Math.floor(diffMin / 60);
+      const diffDias = Math.floor(diffHoras / 24);
+
+      if (diffMin < 1) return 'agora mesmo';
+      if (diffMin < 60) return `há ${diffMin} minuto${diffMin > 1 ? 's' : ''}`;
+      if (diffHoras < 24) return `há ${diffHoras} hora${diffHoras > 1 ? 's' : ''}`;
+      if (diffDias === 1) return 'ontem';
+      if (diffDias < 7) return `há ${diffDias} dias`;
+      return alvo.toLocaleDateString('pt-BR');
+    }
+
+    function renderizarAtividade(leads) {
+      const container = document.getElementById('atividade-recente');
+
+      const eventos = [
+        ...leads.map(l => ({ tipo: 'criado', data: l.criado_em, texto: `Novo lead: ${l.nome || '(sem nome)'}` })),
+        ...leads
+          .filter(l => l.status === 'fechado' && l.fechado_em)
+          .map(l => ({ tipo: 'fechado', data: l.fechado_em, texto: `Lead fechado: ${l.nome || '(sem nome)'}` })),
+        ...calcularEventosDeMatch(leads),
+      ]
+        .filter(e => e.data)
+        .sort((a, b) => new Date(b.data) - new Date(a.data))
+        .slice(0, 8);
+
+      if (!eventos.length) {
+        container.innerHTML = '<p>Nenhuma atividade ainda.</p>';
+        return;
+      }
+
+      container.innerHTML = eventos.map(e => `
+        <div class="atividade-item">
+          <span class="atividade-dot ${e.tipo}"></span>
+          <div class="atividade-texto">
+            <span>${e.texto}</span>
+            <span class="atividade-data">${formatarDataRelativa(e.data)}</span>
+          </div>
+        </div>
+      `).join('');
     }
 
     async function carregarMeusLeads() {
@@ -817,6 +934,20 @@
       return `R$ ${Number(valor).toLocaleString('pt-BR')}`;
     }
 
+    // compara só a parte "YYYY-MM-DD" (texto) pra não cair em pegadinha de
+    // fuso horário na hora de decidir se já passou de "hoje".
+    function leadEstaAtrasado(lead) {
+      if (lead.status !== 'aberto' || !lead.proximo_contato) return false;
+      const dataSomente = String(lead.proximo_contato).slice(0, 10);
+      const hojeSomente = new Date().toISOString().slice(0, 10);
+      return dataSomente < hojeSomente;
+    }
+
+    function formatarDataCurta(dataISO) {
+      const [ano, mes, dia] = String(dataISO).slice(0, 10).split('-');
+      return `${dia}/${mes}/${ano}`;
+    }
+
     function renderizarLeads() {
       const busca = document.getElementById('busca-leads').value.trim().toLowerCase();
       const ordenacao = document.getElementById('ordenacao-leads').value;
@@ -853,6 +984,7 @@
               <span class="badge badge-${lead.papel}">${lead.papel}</span>
               ${lead.nome || '(sem nome)'}
               ${lead.status === 'fechado' ? '<span class="chip chip-fechado">Fechado</span>' : ''}
+              ${leadEstaAtrasado(lead) ? '<span class="chip chip-atrasado">Atrasado</span>' : ''}
             </div>
             <div class="lead-info">
               <span>${lead.categoria || '—'}</span>
@@ -860,7 +992,12 @@
               <span class="lead-valor">${formatarValor(lead)}</span>
             </div>
           </div>
+          ${lead.proximo_contato ? `<div class="lead-info"><span>Próximo contato: ${formatarDataCurta(lead.proximo_contato)}</span></div>` : ''}
           ${(lead.categorias && lead.categorias.length) ? `<div class="lead-info">${lead.categorias.map(c => `<span class="chip chip-pequeno">${labelTipo(c)}</span>`).join('')}</div>` : ''}
+          <div class="lead-notas">
+            <textarea id="notas-${lead.id}" placeholder="Adicionar nota...">${lead.notas || ''}</textarea>
+            <button type="button" class="secundario btn-mini" onclick="salvarNotaInline(${lead.id})">Salvar nota</button>
+          </div>
           <div class="lead-card-acoes">
             <button class="secundario btn-mini" onclick="verMatches(${lead.id})">Ver matches</button>
             <button class="secundario btn-mini" onclick="editarLead(${lead.id})">Editar</button>
@@ -910,6 +1047,32 @@
       if (!confirm('Excluir esse lead? Essa ação não pode ser desfeita.')) return;
       const res = await fetch(`/leads/${id}`, { method: 'DELETE' });
       if (res.status === 401) return verificarSessao();
+      await carregarMeusLeads();
+    }
+
+    // edição direta da nota no card, sem passar pelo formulário completo.
+    // o PUT reescreve todos os campos específicos, então manda de volta os
+    // valores que o lead já tinha (só troca "notas") — senão eles ficariam
+    // null.
+    async function salvarNotaInline(id) {
+      const lead = leadsCache.find(l => l.id === id);
+      if (!lead) return;
+
+      const defTipo = tiposLeadCache[lead.tipo];
+      const camposEspecificos = defTipo ? Object.keys(defTipo.campos) : [];
+      const payload = { tipo: lead.tipo, nome: lead.nome, papel: lead.papel, cidade: lead.cidade };
+      camposEspecificos.forEach(campo => { payload[campo] = lead[campo]; });
+      payload.notas = document.getElementById(`notas-${id}`).value;
+      payload.categorias = lead.categorias || [];
+
+      const res = await fetch(`/leads/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      if (res.status === 401) return verificarSessao();
+      const data = await res.json();
+      if (data.erro) { alert(data.erro); return; }
       await carregarMeusLeads();
     }
 
@@ -980,7 +1143,14 @@
       if (defTipo) {
         Object.entries(defTipo.campos).forEach(([campo, meta]) => {
           const label = meta.label + (meta.opcional ? ' (opcional)' : '');
-          html += `<label>${label}</label><input id="campo_${campo}" value="${dados[campo] ?? ''}">`;
+          const valor = dados[campo] ?? '';
+          if (meta.tipoDado === 'data') {
+            html += `<label>${label}</label><input type="date" id="campo_${campo}" value="${valor ? String(valor).slice(0, 10) : ''}">`;
+          } else if (campo === 'notas') {
+            html += `<label>${label}</label><textarea id="campo_${campo}">${valor}</textarea>`;
+          } else {
+            html += `<label>${label}</label><input id="campo_${campo}" value="${valor}">`;
+          }
         });
       }
 

@@ -234,7 +234,7 @@ app.put('/leads/:id', exigirLogin, async (req, res) => {
 app.post('/leads/:id/fechar', exigirLogin, async (req, res) => {
   try {
     const resultado = await pool.query(
-      "UPDATE leads SET status = 'fechado' WHERE id = $1 AND corretor_id = $2 RETURNING *",
+      "UPDATE leads SET status = 'fechado', fechado_em = now() WHERE id = $1 AND corretor_id = $2 RETURNING *",
       [req.params.id, req.session.corretorId]
     );
 
