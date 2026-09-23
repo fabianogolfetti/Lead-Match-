@@ -46,11 +46,13 @@ async function migrar() {
       confirmado INTEGER DEFAULT 0,          -- 0 = aguardando confirmação, 1 = confirmado
       status TEXT NOT NULL DEFAULT 'aberto', -- 'aberto' | 'fechado' (fechado não entra mais no matching)
       criado_em TIMESTAMPTZ NOT NULL DEFAULT now(),
+      atualizado_em TIMESTAMPTZ,         -- última edição (null até a primeira, pra "histórico" na tela de detalhe)
       fechado_em TIMESTAMPTZ             -- quando foi marcado como fechado (pra "atividade recente")
     )
   `);
-  // migração leve: leads já existiam antes dessa coluna
+  // migrações leves: leads já existiam antes dessas colunas
   await pool.query('ALTER TABLE leads ADD COLUMN IF NOT EXISTS fechado_em TIMESTAMPTZ');
+  await pool.query('ALTER TABLE leads ADD COLUMN IF NOT EXISTS atualizado_em TIMESTAMPTZ');
 
   // campos específicos de cada tipo de lead viram colunas aqui. Cada tipo
   // novo em TIPOS_LEAD já garante as colunas dele sozinho, sem precisar

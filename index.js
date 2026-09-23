@@ -235,7 +235,7 @@ app.put('/leads/:id', exigirLogin, async (req, res) => {
       cidade ? cidade.trim() : null,
       ...CAMPOS_ESPECIFICOS.map((campo) => req.body[campo] ?? null),
     ];
-    const setSql = colunas.map((coluna, i) => `${coluna} = $${i + 1}`).join(', ');
+    const setSql = colunas.map((coluna, i) => `${coluna} = $${i + 1}`).join(', ') + ', atualizado_em = now()';
 
     const resultado = await pool.query(
       `UPDATE leads SET ${setSql} WHERE id = $${valores.length + 1} AND corretor_id = $${valores.length + 2} RETURNING id`,

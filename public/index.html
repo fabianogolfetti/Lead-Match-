@@ -219,30 +219,6 @@
     color: var(--amber-dark);
   }
 
-  .lead-card {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    border: 1px solid var(--border);
-    border-left: 4px solid var(--verde-aberto);
-    border-radius: 8px;
-    padding: 10px 12px;
-    margin-top: 8px;
-    background: var(--bg-input);
-  }
-
-  .lead-card.fechado { opacity: 0.6; border-left-color: var(--cinza-fechado); }
-
-  .lead-card .lead-card-linha { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; }
-
-  .lead-card .lead-nome { display: flex; align-items: center; gap: 8px; font-weight: 600; }
-
-  .lead-card .lead-info { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 13px; color: var(--text-muted); }
-
-  .lead-card .lead-valor { font-weight: 600; color: var(--amber-light); }
-
-  .lead-card .lead-card-acoes { display: flex; flex-wrap: wrap; gap: 6px; }
-
   .btn-mini {
     padding: 5px 10px;
     margin: 0;
@@ -266,10 +242,7 @@
   }
 
   .lead-notas { display: flex; flex-direction: column; gap: 6px; }
-  .lead-notas textarea { height: 50px; font-size: 13px; }
-
-  .lead-matches { margin-top: -2px; }
-  .lead-matches .match { margin-top: 6px; }
+  .lead-notas textarea { height: 90px; font-size: 13px; }
 
   input[type="checkbox"] { width: auto; }
 
@@ -384,7 +357,7 @@
     background: var(--bg-card);
   }
 
-  .dashboard-numero { font-size: 28px; font-weight: 700; line-height: 1; }
+  .dashboard-numero { font-size: 28px; font-weight: 700; line-height: 1.2; }
 
   .dashboard-label { font-size: 12px; color: var(--text-muted); }
 
@@ -412,9 +385,172 @@
 
   .atividade-texto { display: flex; flex-direction: column; gap: 2px; font-size: 13px; }
   .atividade-data { font-size: 12px; color: var(--text-muted); }
+
+  /* --- toasts: substituem as mensagens de erro/sucesso em texto vermelho --- */
+  #toast-container {
+    position: fixed;
+    top: calc(16px + env(safe-area-inset-top));
+    left: 0;
+    right: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    z-index: 60;
+    pointer-events: none;
+    padding: 0 16px;
+  }
+
+  .toast {
+    max-width: 420px;
+    width: 100%;
+    padding: 12px 16px;
+    border-radius: 10px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-size: 13px;
+    font-weight: 600;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+    opacity: 0;
+    transform: translateY(-10px);
+    transition: opacity 0.22s ease, transform 0.22s ease;
+  }
+
+  .toast.mostrar { opacity: 1; transform: translateY(0); }
+  .toast.sucesso { border-color: var(--verde-aberto); }
+  .toast.erro { border-color: var(--erro); color: var(--erro); }
+
+  /* --- loading skeleton (blocos pulsando enquanto /leads carrega) --- */
+  @keyframes pulso { 0%, 100% { opacity: 0.35; } 50% { opacity: 0.75; } }
+
+  .skeleton { background: var(--border) !important; color: transparent !important; animation: pulso 1.3s ease-in-out infinite; }
+  .skeleton-linha { display: block; height: 11px; border-radius: 4px; margin-top: 6px; }
+  .skeleton-linha:first-child { margin-top: 0; }
+
+  #view-inicio .dashboard-numero.skeleton { display: inline-block; width: 34px; height: 24px; border-radius: 6px; }
+
+  /* --- estados vazios --- */
+  .estado-vazio {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    padding: 26px 10px;
+    color: var(--text-muted);
+    text-align: center;
+  }
+
+  .estado-vazio svg { width: 40px; height: 40px; stroke: var(--text-muted); fill: none; stroke-width: 1.5; opacity: 0.7; }
+  .estado-vazio p { margin: 0; font-size: 13px; }
+
+  /* --- transição suave entre as abas do bottom nav --- */
+  @keyframes entrarComFade { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+  .view-fade { animation: entrarComFade 0.24s ease; }
+
+  /* --- card resumido da lista de leads (toca pra abrir o detalhe) --- */
+  .lead-card-resumo {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 10px 12px;
+    margin-top: 8px;
+    background: var(--bg-input);
+    cursor: pointer;
+    transition: background 0.15s ease, transform 0.1s ease;
+  }
+
+  .lead-card-resumo:active { background: var(--bg-card); transform: scale(0.99); }
+
+  .lead-card-resumo-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+  .lead-card-resumo-nome { font-weight: 600; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .lead-card-resumo-sub { font-size: 12px; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+  .status-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; background: var(--verde-aberto); }
+  .status-dot.fechado { background: var(--cinza-fechado); }
+  .status-dot.atrasado { background: var(--erro); }
+
+  .seta-ver-mais { width: 18px; height: 18px; stroke: var(--text-muted); fill: none; stroke-width: 2; flex-shrink: 0; }
+
+  /* --- tela de detalhe do lead: tela cheia, desliza da direita --- */
+  #view-lead-detalhe {
+    position: fixed;
+    inset: 0;
+    background: var(--bg);
+    display: flex;
+    flex-direction: column;
+    transform: translateX(100%);
+    transition: transform 0.28s cubic-bezier(.4, 0, .2, 1);
+    z-index: 20;
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  #view-lead-detalhe.aberto { transform: translateX(0); }
+
+  .detalhe-topo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 14px max(16px, env(safe-area-inset-right)) 12px max(16px, env(safe-area-inset-left));
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+
+  .botao-icone {
+    all: unset;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    cursor: pointer;
+    color: var(--text);
+  }
+  .botao-icone:active { background: var(--bg-card); }
+  .botao-icone svg { width: 22px; height: 22px; stroke: currentColor; fill: none; stroke-width: 2; }
+
+  .detalhe-titulo { font-size: 15px; font-weight: 600; }
+
+  .detalhe-conteudo {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px max(16px, env(safe-area-inset-right)) 24px max(16px, env(safe-area-inset-left));
+  }
+
+  /* --- pull-to-refresh na lista de leads --- */
+  .ptr-indicador {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    height: 0;
+    overflow: hidden;
+    opacity: 0;
+    color: var(--text-muted);
+    font-size: 12px;
+    font-weight: 600;
+    transition: opacity 0.15s ease;
+  }
+  .ptr-indicador.visivel { height: 40px; opacity: 1; }
+
+  .ptr-spinner {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    border: 2px solid var(--border);
+    border-top-color: var(--amber-light);
+  }
+  .ptr-indicador.girando .ptr-spinner { animation: girar 0.7s linear infinite; }
+  @keyframes girar { to { transform: rotate(360deg); } }
 </style>
 </head>
 <body>
+
+  <div id="toast-container"></div>
 
   <div id="tela-auth">
     <div class="auth-caixa">
@@ -437,7 +573,6 @@
         <label>Senha</label>
         <input id="auth_senha" type="password" placeholder="sua senha">
         <button id="botao-auth" onclick="enviarAuth()">Entrar</button>
-        <div id="auth-erro"></div>
       </div>
     </div>
   </div>
@@ -457,7 +592,6 @@
 
         <button id="botao-onboarding" onclick="enviarOnboarding()">Continuar</button>
         <button class="secundario" onclick="pularOnboarding()">Pular por enquanto</button>
-        <div id="onboarding-erro"></div>
       </div>
     </div>
   </div>
@@ -531,6 +665,8 @@
         </label>
       </div>
 
+      <div class="ptr-indicador" id="ptr-indicador"><span class="ptr-spinner"></span><span>Puxe para atualizar</span></div>
+
       <div id="lista-leads"></div>
     </div>
 
@@ -550,6 +686,72 @@
     </nav>
   </div>
 
+  <div id="view-lead-detalhe">
+    <div class="detalhe-topo">
+      <button type="button" class="botao-icone" onclick="fecharDetalheLead()" aria-label="Voltar">
+        <svg viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg>
+      </button>
+      <span class="detalhe-titulo">Detalhes do lead</span>
+    </div>
+
+    <div class="detalhe-conteudo">
+      <div class="card">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <span class="avatar" id="detalhe-avatar" style="width:44px; height:44px; font-size:18px;"></span>
+          <div>
+            <div style="font-size:17px; font-weight:600;" id="detalhe-nome"></div>
+            <span class="badge" id="detalhe-papel-badge" style="margin-top:4px;"></span>
+          </div>
+        </div>
+
+        <div class="dashboard-grid" style="margin-top:14px;">
+          <div class="dashboard-card">
+            <span class="dashboard-numero" id="detalhe-valor" style="font-size:17px;"></span>
+            <span class="dashboard-label">Valor</span>
+          </div>
+          <div class="dashboard-card">
+            <span class="dashboard-numero" id="detalhe-categoria" style="font-size:15px;"></span>
+            <span class="dashboard-label">Categoria</span>
+          </div>
+          <div class="dashboard-card">
+            <span class="dashboard-numero" id="detalhe-status" style="font-size:15px;"></span>
+            <span class="dashboard-label">Status</span>
+          </div>
+          <div class="dashboard-card">
+            <span class="dashboard-numero" id="detalhe-cidade" style="font-size:15px;"></span>
+            <span class="dashboard-label">Cidade</span>
+          </div>
+        </div>
+
+        <p class="dashboard-label" id="detalhe-proximo-contato" style="margin:10px 0 0;"></p>
+        <div id="detalhe-categorias-chips" style="margin-top:8px;"></div>
+      </div>
+
+      <div class="card">
+        <h3>Notas</h3>
+        <div id="detalhe-notas-area"></div>
+      </div>
+
+      <div class="card">
+        <h3>Matches sugeridos</h3>
+        <div id="detalhe-matches-area"></div>
+      </div>
+
+      <div class="card">
+        <h3>Histórico</h3>
+        <div id="detalhe-historico-area"></div>
+      </div>
+
+      <div class="card">
+        <div class="filtros" style="margin-top:0;">
+          <button type="button" onclick="editarLead(leadDetalheAtualId)">Editar lead</button>
+          <button type="button" class="secundario" id="detalhe-btn-fechar" onclick="marcarFechado(leadDetalheAtualId)">Marcar como fechado</button>
+          <button type="button" class="secundario" style="border-color:var(--erro); color:var(--erro);" onclick="excluirLead(leadDetalheAtualId)">Excluir lead</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <script>
     let dadosAtuais = null;
     let abaAtual = 'login';
@@ -563,6 +765,70 @@
     let mensagemOriginalAtual = '';
     let idEdicaoAtual = null;
     let categoriasAtivasAtual = [];
+    let leadDetalheAtualId = null;
+    let editandoNotasDetalhe = false;
+
+    // --- toasts: substituem as mensagens de erro/sucesso em texto vermelho ---
+    function mostrarToast(mensagem, tipo = 'info') {
+      const container = document.getElementById('toast-container');
+      const toast = document.createElement('div');
+      toast.className = `toast ${tipo}`;
+      toast.textContent = mensagem;
+      container.appendChild(toast);
+      requestAnimationFrame(() => toast.classList.add('mostrar'));
+      setTimeout(() => {
+        toast.classList.remove('mostrar');
+        setTimeout(() => toast.remove(), 250);
+      }, 3000);
+    }
+
+    function escapeHtml(texto) {
+      return String(texto ?? '').replace(/[&<>"']/g, (c) => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+      }[c]));
+    }
+
+    // --- estados vazios (ícone + mensagem, no lugar de listas em branco) ---
+    function estadoVazio(icone, texto) {
+      return `<div class="estado-vazio">${icone}<p>${texto}</p></div>`;
+    }
+
+    const ICONE_VAZIO_LEADS = '<svg viewBox="0 0 24 24"><path d="M4 4h16l2 8v8H2v-8L4 4z"/><path d="M2 12h6l2 3h4l2-3h6"/></svg>';
+    const ICONE_VAZIO_MATCHES = '<svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>';
+    const ICONE_VAZIO_NOTAS = '<svg viewBox="0 0 24 24"><path d="M6 2h9l5 5v15H6V2z"/><path d="M14 2v6h6"/><path d="M9 13h6M9 17h6"/></svg>';
+    const ICONE_VAZIO_ATIVIDADE = '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>';
+
+    // --- loading skeleton: blocos pulsando enquanto /leads carrega ---
+    function skeletonLeads(qtd = 4) {
+      return Array.from({ length: qtd }).map(() => `
+        <div class="lead-card-resumo" style="cursor:default;">
+          <span class="avatar skeleton"></span>
+          <div class="lead-card-resumo-info">
+            <span class="skeleton skeleton-linha" style="width:55%"></span>
+            <span class="skeleton skeleton-linha" style="width:35%"></span>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function skeletonAtividade(qtd = 4) {
+      return Array.from({ length: qtd }).map(() => `
+        <div class="atividade-item">
+          <span class="atividade-dot skeleton"></span>
+          <div class="atividade-texto" style="flex:1;">
+            <span class="skeleton skeleton-linha" style="width:70%"></span>
+            <span class="skeleton skeleton-linha" style="width:30%; height:9px;"></span>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function skeletonMatches() {
+      return `
+        <div class="match"><span class="skeleton skeleton-linha" style="width:60%"></span></div>
+        <div class="match"><span class="skeleton skeleton-linha" style="width:45%"></span></div>
+      `;
+    }
 
     function labelTipo(chave) {
       return (tiposLeadCache[chave] && tiposLeadCache[chave].label) || chave;
@@ -631,26 +897,23 @@
       document.getElementById('botao-auth').textContent = aba === 'login' ? 'Entrar' : 'Cadastrar';
       document.getElementById('campo-nome-auth').style.display = aba === 'cadastro' ? '' : 'none';
       document.getElementById('auth_senha').placeholder = aba === 'cadastro' ? 'mín. 8 caracteres, 1 maiúscula, 1 número' : 'sua senha';
-      document.getElementById('auth-erro').innerHTML = '';
     }
 
     async function enviarAuth() {
       const nome = document.getElementById('auth_nome').value.trim();
       const email = document.getElementById('auth_email').value.trim();
       const senha = document.getElementById('auth_senha').value;
-      const erroDiv = document.getElementById('auth-erro');
-      erroDiv.innerHTML = '';
 
       if (!email || !senha || (abaAtual === 'cadastro' && !nome)) {
-        erroDiv.innerHTML = '<div class="alerta-erro">Preencha todos os campos.</div>';
+        mostrarToast('Preencha todos os campos.', 'erro');
         return;
       }
       if (!EMAIL_REGEX.test(email)) {
-        erroDiv.innerHTML = '<div class="alerta-erro">Informe um e-mail válido (com @ e domínio, ex: nome@exemplo.com).</div>';
+        mostrarToast('Informe um e-mail válido (com @ e domínio, ex: nome@exemplo.com).', 'erro');
         return;
       }
       if (abaAtual === 'cadastro' && !SENHA_REGEX.test(senha)) {
-        erroDiv.innerHTML = '<div class="alerta-erro">A senha precisa ter no mínimo 8 caracteres, com pelo menos 1 letra maiúscula e 1 número.</div>';
+        mostrarToast('A senha precisa ter no mínimo 8 caracteres, com pelo menos 1 letra maiúscula e 1 número.', 'erro');
         return;
       }
 
@@ -671,7 +934,7 @@
         if (data.erro) throw new Error(data.erro);
         await entrarNaTelaApp(data.nome, data.onboardingConcluido);
       } catch (e) {
-        erroDiv.innerHTML = `<div class="alerta-erro">${e.message}</div>`;
+        mostrarToast(e.message, 'erro');
         botao.disabled = false;
         botao.textContent = textoOriginal;
       }
@@ -683,6 +946,7 @@
       document.getElementById('auth_email').value = '';
       document.getElementById('auth_senha').value = '';
       document.getElementById('resultado').innerHTML = '';
+      fecharDetalheLead();
       leadsCache = [];
       categoriasCache = [];
       verificarSessao();
@@ -709,9 +973,6 @@
     }
 
     async function enviarOnboarding() {
-      const erroDiv = document.getElementById('onboarding-erro');
-      erroDiv.innerHTML = '';
-
       const botao = document.getElementById('botao-onboarding');
       botao.disabled = true;
       botao.textContent = 'Salvando...';
@@ -728,7 +989,7 @@
         categoriasCache = data.categorias;
         mostrarTelaApp(nomeCorretorAtual);
       } catch (e) {
-        erroDiv.innerHTML = `<div class="alerta-erro">${e.message}</div>`;
+        mostrarToast(e.message, 'erro');
       } finally {
         botao.disabled = false;
         botao.textContent = 'Continuar';
@@ -745,11 +1006,20 @@
     }
 
     verificarSessao();
+    iniciarPullToRefresh();
 
     function mostrarAbaApp(aba) {
       ['inicio', 'processar', 'meusleads'].forEach(v => {
+        const view = document.getElementById(`view-${v}`);
         document.getElementById(`nav-${v}`).classList.toggle('ativo', aba === v);
-        document.getElementById(`view-${v}`).style.display = aba === v ? '' : 'none';
+        if (aba === v) {
+          view.style.display = '';
+          view.classList.remove('view-fade');
+          void view.offsetWidth; // reinicia a animação mesmo se a classe já tinha sido usada
+          view.classList.add('view-fade');
+        } else {
+          view.style.display = 'none';
+        }
       });
       if (aba === 'meusleads') carregarMeusLeads();
       if (aba === 'inicio') carregarInicio();
@@ -789,9 +1059,14 @@
     }
 
     async function carregarInicio() {
+      document.querySelectorAll('#view-inicio .dashboard-numero').forEach(el => el.classList.add('skeleton'));
+      document.getElementById('atividade-recente').innerHTML = skeletonAtividade();
+
       const res = await fetch('/leads');
       if (res.status === 401) return verificarSessao();
       leadsCache = await res.json();
+
+      document.querySelectorAll('#view-inicio .dashboard-numero').forEach(el => el.classList.remove('skeleton'));
       renderizarDashboard(leadsCache);
     }
 
@@ -864,7 +1139,7 @@
         .slice(0, 8);
 
       if (!eventos.length) {
-        container.innerHTML = '<p>Nenhuma atividade ainda.</p>';
+        container.innerHTML = estadoVazio(ICONE_VAZIO_ATIVIDADE, 'Nenhuma atividade ainda.');
         return;
       }
 
@@ -881,7 +1156,7 @@
 
     async function carregarMeusLeads() {
       const listaDiv = document.getElementById('lista-leads');
-      listaDiv.innerHTML = '<p>Carregando...</p>';
+      listaDiv.innerHTML = skeletonLeads();
       const res = await fetch('/leads');
       if (res.status === 401) return verificarSessao();
       leadsCache = await res.json();
@@ -948,6 +1223,12 @@
       return `${dia}/${mes}/${ano}`;
     }
 
+    function classeStatusLead(lead) {
+      if (lead.status === 'fechado') return 'fechado';
+      if (leadEstaAtrasado(lead)) return 'atrasado';
+      return '';
+    }
+
     function renderizarLeads() {
       const busca = document.getElementById('busca-leads').value.trim().toLowerCase();
       const ordenacao = document.getElementById('ordenacao-leads').value;
@@ -973,96 +1254,128 @@
       }
 
       if (!leads.length) {
-        listaDiv.innerHTML = '<p>Nenhum lead encontrado.</p>';
+        listaDiv.innerHTML = estadoVazio(
+          ICONE_VAZIO_LEADS,
+          leadsCache.length ? 'Nenhum lead encontrado com esse filtro.' : 'Nenhum lead cadastrado ainda.'
+        );
         return;
       }
 
       listaDiv.innerHTML = leads.map(lead => `
-        <div class="lead-card ${lead.status === 'fechado' ? 'fechado' : ''}">
-          <div class="lead-card-linha">
-            <div class="lead-nome">
-              <span class="badge badge-${lead.papel}">${lead.papel}</span>
-              ${lead.nome || '(sem nome)'}
-              ${lead.status === 'fechado' ? '<span class="chip chip-fechado">Fechado</span>' : ''}
-              ${leadEstaAtrasado(lead) ? '<span class="chip chip-atrasado">Atrasado</span>' : ''}
-            </div>
-            <div class="lead-info">
-              <span>${lead.categoria || '—'}</span>
-              <span>${lead.cidade || '—'}</span>
-              <span class="lead-valor">${formatarValor(lead)}</span>
-            </div>
+        <div class="lead-card-resumo" onclick="abrirDetalheLead(${lead.id})">
+          <span class="avatar">${(lead.nome || '?').trim().charAt(0).toUpperCase()}</span>
+          <div class="lead-card-resumo-info">
+            <span class="lead-card-resumo-nome">${lead.nome || '(sem nome)'}</span>
+            <span class="lead-card-resumo-sub">${lead.categoria || '—'} · ${formatarValor(lead)}</span>
           </div>
-          ${lead.proximo_contato ? `<div class="lead-info"><span>Próximo contato: ${formatarDataCurta(lead.proximo_contato)}</span></div>` : ''}
-          ${(lead.categorias && lead.categorias.length) ? `<div class="lead-info">${lead.categorias.map(c => `<span class="chip chip-pequeno">${labelTipo(c)}</span>`).join('')}</div>` : ''}
-          <div class="lead-notas">
-            <textarea id="notas-${lead.id}" placeholder="Adicionar nota...">${lead.notas || ''}</textarea>
-            <button type="button" class="secundario btn-mini" onclick="salvarNotaInline(${lead.id})">Salvar nota</button>
-          </div>
-          <div class="lead-card-acoes">
-            <button class="secundario btn-mini" onclick="verMatches(${lead.id})">Ver matches</button>
-            <button class="secundario btn-mini" onclick="editarLead(${lead.id})">Editar</button>
-            ${lead.status !== 'fechado' ? `<button class="secundario btn-mini" onclick="marcarFechado(${lead.id})">Marcar como fechado</button>` : ''}
-            <button class="secundario btn-mini perigo" onclick="excluirLead(${lead.id})">Excluir</button>
-          </div>
-          <div class="lead-matches" id="matches-${lead.id}"></div>
+          <span class="status-dot ${classeStatusLead(lead)}"></span>
+          <svg class="seta-ver-mais" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg>
         </div>
       `).join('');
     }
 
-    async function verMatches(id) {
-      const container = document.getElementById(`matches-${id}`);
-      if (container.dataset.aberto === '1') {
-        container.innerHTML = '';
-        container.dataset.aberto = '0';
-        return;
-      }
+    // --- tela de detalhe do lead ---
 
-      container.innerHTML = '<p>Buscando matches...</p>';
-      const res = await fetch(`/leads/${id}/matches`);
-      if (res.status === 401) return verificarSessao();
-      const data = await res.json();
-      if (data.erro) {
-        container.innerHTML = `<p class="erro">${data.erro}</p>`;
-        return;
-      }
-
-      container.dataset.aberto = '1';
-      if (!data.matches.length) {
-        container.innerHTML = '<p>Nenhum match encontrado.</p>';
-        return;
-      }
-      container.innerHTML = data.matches.map(m => `
-        <div class="match"><span class="badge badge-${m.papel}">${m.papel}</span>${m.nome || '(sem nome)'} — diferença: ${m.diferenca}</div>
-      `).join('');
+    function abrirDetalheLead(id) {
+      leadDetalheAtualId = id;
+      editandoNotasDetalhe = false;
+      renderizarDetalheLead();
+      document.getElementById('view-lead-detalhe').classList.add('aberto');
     }
 
-    async function marcarFechado(id) {
-      if (!confirm('Marcar esse lead como fechado? Ele para de entrar nas buscas de match.')) return;
-      const res = await fetch(`/leads/${id}/fechar`, { method: 'POST' });
-      if (res.status === 401) return verificarSessao();
-      await carregarMeusLeads();
+    function fecharDetalheLead() {
+      document.getElementById('view-lead-detalhe').classList.remove('aberto');
+      leadDetalheAtualId = null;
     }
 
-    async function excluirLead(id) {
-      if (!confirm('Excluir esse lead? Essa ação não pode ser desfeita.')) return;
-      const res = await fetch(`/leads/${id}`, { method: 'DELETE' });
-      if (res.status === 401) return verificarSessao();
-      await carregarMeusLeads();
-    }
-
-    // edição direta da nota no card, sem passar pelo formulário completo.
-    // o PUT reescreve todos os campos específicos, então manda de volta os
-    // valores que o lead já tinha (só troca "notas") — senão eles ficariam
-    // null.
-    async function salvarNotaInline(id) {
-      const lead = leadsCache.find(l => l.id === id);
+    function renderizarDetalheLead() {
+      const lead = leadsCache.find(l => l.id === leadDetalheAtualId);
       if (!lead) return;
+
+      document.getElementById('detalhe-avatar').textContent = (lead.nome || '?').trim().charAt(0).toUpperCase();
+      document.getElementById('detalhe-nome').textContent = lead.nome || '(sem nome)';
+
+      const badgePapel = document.getElementById('detalhe-papel-badge');
+      badgePapel.textContent = lead.papel;
+      badgePapel.className = `badge badge-${lead.papel}`;
+
+      document.getElementById('detalhe-valor').textContent = formatarValor(lead);
+      document.getElementById('detalhe-categoria').textContent = lead.categoria || '—';
+      document.getElementById('detalhe-cidade').textContent = lead.cidade || '—';
+
+      const statusEl = document.getElementById('detalhe-status');
+      if (lead.status === 'fechado') {
+        statusEl.innerHTML = '<span class="chip chip-fechado">Fechado</span>';
+      } else if (leadEstaAtrasado(lead)) {
+        statusEl.innerHTML = '<span class="chip chip-atrasado">Atrasado</span>';
+      } else {
+        statusEl.innerHTML = '<span class="chip" style="border-color:var(--verde-aberto); color:var(--verde-aberto);">Aberto</span>';
+      }
+
+      document.getElementById('detalhe-proximo-contato').textContent =
+        lead.proximo_contato ? `Próximo contato: ${formatarDataCurta(lead.proximo_contato)}` : '';
+
+      document.getElementById('detalhe-categorias-chips').innerHTML = (lead.categorias && lead.categorias.length)
+        ? lead.categorias.map(c => `<span class="chip chip-pequeno">${labelTipo(c)}</span>`).join('')
+        : '';
+
+      document.getElementById('detalhe-btn-fechar').style.display = lead.status === 'fechado' ? 'none' : '';
+
+      renderizarNotasDetalhe(lead);
+      renderizarHistoricoDetalhe(lead);
+      carregarMatchesDetalhe(lead.id);
+    }
+
+    function renderizarNotasDetalhe(lead) {
+      const area = document.getElementById('detalhe-notas-area');
+
+      if (editandoNotasDetalhe) {
+        area.innerHTML = `
+          <div class="lead-notas">
+            <textarea id="detalhe-notas-textarea" placeholder="Escreva uma nota...">${escapeHtml(lead.notas || '')}</textarea>
+            <div class="filtros" style="margin-top:0;">
+              <button type="button" class="btn-mini" onclick="salvarNotasDetalhe()">Salvar</button>
+              <button type="button" class="secundario btn-mini" onclick="cancelarEdicaoNotasDetalhe()">Cancelar</button>
+            </div>
+          </div>`;
+        document.getElementById('detalhe-notas-textarea').focus();
+        return;
+      }
+
+      if (!lead.notas) {
+        area.innerHTML = estadoVazio(ICONE_VAZIO_NOTAS, 'Nenhuma nota ainda.') +
+          `<button type="button" class="secundario btn-mini" onclick="iniciarEdicaoNotasDetalhe()">Adicionar nota</button>`;
+        return;
+      }
+
+      area.innerHTML = `
+        <p style="white-space:pre-wrap; margin:0;">${escapeHtml(lead.notas)}</p>
+        <button type="button" class="secundario btn-mini" onclick="iniciarEdicaoNotasDetalhe()">Editar nota</button>`;
+    }
+
+    function iniciarEdicaoNotasDetalhe() {
+      editandoNotasDetalhe = true;
+      renderizarNotasDetalhe(leadsCache.find(l => l.id === leadDetalheAtualId));
+    }
+
+    function cancelarEdicaoNotasDetalhe() {
+      editandoNotasDetalhe = false;
+      renderizarNotasDetalhe(leadsCache.find(l => l.id === leadDetalheAtualId));
+    }
+
+    // reconstrói o payload completo do lead (o PUT reescreve tudo) trocando só
+    // o campo indicado — usado pra editar a nota sem passar pelo formulário
+    // inteiro. Atualiza o leadsCache local com a resposta, pra não precisar
+    // recarregar tudo de novo do servidor.
+    async function atualizarCampoLead(id, campo, valor) {
+      const lead = leadsCache.find(l => l.id === id);
+      if (!lead) return false;
 
       const defTipo = tiposLeadCache[lead.tipo];
       const camposEspecificos = defTipo ? Object.keys(defTipo.campos) : [];
       const payload = { tipo: lead.tipo, nome: lead.nome, papel: lead.papel, cidade: lead.cidade };
-      camposEspecificos.forEach(campo => { payload[campo] = lead[campo]; });
-      payload.notas = document.getElementById(`notas-${id}`).value;
+      camposEspecificos.forEach(c => { payload[c] = lead[c]; });
+      payload[campo] = valor;
       payload.categorias = lead.categorias || [];
 
       const res = await fetch(`/leads/${id}`, {
@@ -1070,15 +1383,123 @@
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
+      if (res.status === 401) { verificarSessao(); return false; }
+      const data = await res.json();
+      if (data.erro) { mostrarToast(data.erro, 'erro'); return false; }
+
+      const idx = leadsCache.findIndex(l => l.id === id);
+      if (idx !== -1) leadsCache[idx] = data.lead;
+      return true;
+    }
+
+    async function salvarNotasDetalhe() {
+      const id = leadDetalheAtualId;
+      const novaNota = document.getElementById('detalhe-notas-textarea').value;
+      const ok = await atualizarCampoLead(id, 'notas', novaNota);
+      if (!ok) return;
+
+      editandoNotasDetalhe = false;
+      mostrarToast('Nota salva.', 'sucesso');
+      const lead = leadsCache.find(l => l.id === id);
+      renderizarNotasDetalhe(lead);
+      renderizarHistoricoDetalhe(lead);
+      renderizarLeads();
+    }
+
+    function renderizarHistoricoDetalhe(lead) {
+      const itens = [
+        { rotulo: 'Criado em', data: lead.criado_em },
+        lead.atualizado_em ? { rotulo: 'Editado em', data: lead.atualizado_em } : null,
+        lead.fechado_em ? { rotulo: 'Fechado em', data: lead.fechado_em } : null,
+      ].filter(Boolean);
+
+      document.getElementById('detalhe-historico-area').innerHTML = itens.map(item => `
+        <div class="atividade-item">
+          <div class="atividade-texto">
+            <span>${item.rotulo}</span>
+            <span class="atividade-data">${new Date(item.data).toLocaleString('pt-BR')}</span>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    async function carregarMatchesDetalhe(id) {
+      const area = document.getElementById('detalhe-matches-area');
+      area.innerHTML = skeletonMatches();
+
+      const res = await fetch(`/leads/${id}/matches`);
       if (res.status === 401) return verificarSessao();
       const data = await res.json();
-      if (data.erro) { alert(data.erro); return; }
+      if (leadDetalheAtualId !== id) return; // já saiu da tela antes da resposta chegar
+
+      if (data.erro || !data.matches.length) {
+        area.innerHTML = estadoVazio(ICONE_VAZIO_MATCHES, 'Nenhum match encontrado ainda.');
+        return;
+      }
+
+      area.innerHTML = data.matches.map(m => `
+        <div class="match"><span class="badge badge-${m.papel}">${m.papel}</span>${m.nome || '(sem nome)'} — diferença: ${m.diferenca}</div>
+      `).join('');
+    }
+
+    // --- pull-to-refresh na lista de leads ---
+    function iniciarPullToRefresh() {
+      const area = document.getElementById('view-meusleads');
+      const indicador = document.getElementById('ptr-indicador');
+      const texto = indicador.querySelector('span:last-child');
+      const LIMITE = 70;
+      let inicioY = null;
+      let distancia = 0;
+
+      area.addEventListener('touchstart', (e) => {
+        inicioY = window.scrollY === 0 ? e.touches[0].clientY : null;
+      }, { passive: true });
+
+      area.addEventListener('touchmove', (e) => {
+        if (inicioY == null) return;
+        distancia = e.touches[0].clientY - inicioY;
+        if (distancia > 10) {
+          indicador.classList.add('visivel');
+          texto.textContent = distancia > LIMITE ? 'Solte para atualizar' : 'Puxe para atualizar';
+        }
+      }, { passive: true });
+
+      area.addEventListener('touchend', async () => {
+        if (inicioY == null) return;
+        if (distancia > LIMITE) {
+          indicador.classList.add('girando');
+          texto.textContent = 'Atualizando...';
+          await carregarMeusLeads();
+        }
+        indicador.classList.remove('visivel', 'girando');
+        inicioY = null;
+        distancia = 0;
+      });
+    }
+
+    async function marcarFechado(id) {
+      if (!confirm('Marcar esse lead como fechado? Ele para de entrar nas buscas de match.')) return;
+      const res = await fetch(`/leads/${id}/fechar`, { method: 'POST' });
+      if (res.status === 401) return verificarSessao();
+      mostrarToast('Lead marcado como fechado.', 'sucesso');
+      fecharDetalheLead();
+      await carregarMeusLeads();
+    }
+
+    async function excluirLead(id) {
+      if (!confirm('Excluir esse lead? Essa ação não pode ser desfeita.')) return;
+      const res = await fetch(`/leads/${id}`, { method: 'DELETE' });
+      if (res.status === 401) return verificarSessao();
+      mostrarToast('Lead excluído.', 'sucesso');
+      fecharDetalheLead();
       await carregarMeusLeads();
     }
 
     function editarLead(id) {
       const lead = leadsCache.find(l => l.id === id);
       if (!lead) return;
+
+      fecharDetalheLead();
 
       const defTipo = tiposLeadCache[lead.tipo];
       const camposEspecificos = defTipo ? Object.keys(defTipo.campos) : [];
@@ -1109,7 +1530,8 @@
         dadosAtuais = data.dadosExtraidos;
         mostrarFormularioConfirmacao(dadosAtuais, texto);
       } catch (e) {
-        resDiv.innerHTML = `<p class="erro">Erro: ${e.message}</p>`;
+        resDiv.innerHTML = '';
+        mostrarToast(`Erro: ${e.message}`, 'erro');
       }
     }
 
@@ -1255,9 +1677,11 @@
       if (res.status === 401) return verificarSessao();
       const data = await res.json();
       if (data.erro) {
-        document.getElementById('resultado').innerHTML = `<p class="erro">Erro: ${data.erro}</p>`;
+        mostrarToast(`Erro: ${data.erro}`, 'erro');
         return;
       }
+
+      mostrarToast(idEdicaoAtual ? 'Lead atualizado!' : 'Lead salvo!', 'sucesso');
 
       let html = `<div class="card"><h3>${idEdicaoAtual ? 'Lead atualizado!' : 'Lead salvo!'}</h3>`;
       if (data.matches && data.matches.length) {
