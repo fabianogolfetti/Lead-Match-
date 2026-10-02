@@ -61,7 +61,7 @@
 
   textarea { height: 80px; }
 
-  textarea:focus, input:focus {
+  textarea:focus, input:focus, select:focus {
     outline: none;
     border-color: var(--amber-light);
   }
@@ -101,6 +101,22 @@
     margin-top: 8px;
     background: var(--bg-input);
   }
+  .match.clicavel { cursor: pointer; }
+  .match.clicavel:active { background: var(--bg-card); }
+  .match-topo { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .match-topo strong { flex: 1; min-width: 0; }
+  .match-detalhe { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
+  .match-explicacao { font-size: 12px; color: var(--amber-light); margin-top: 4px; }
+
+  .chip-pontuacao {
+    display: inline-block;
+    padding: 1px 9px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 700;
+    background: var(--amber-light);
+    color: var(--amber-dark);
+  }
 
   .badge {
     display: inline-block;
@@ -113,8 +129,9 @@
     margin-right: 6px;
   }
 
-  .badge-vendedor { background: var(--amber-light); color: var(--amber-dark); }
-  .badge-comprador { background: var(--amber-dark); color: var(--amber-light); }
+  .badge-tenho { background: var(--amber-light); color: var(--amber-dark); }
+  .badge-procuro { background: var(--amber-dark); color: var(--amber-light); }
+  .badge-indefinido { background: transparent; color: var(--text-muted); border: 1px dashed var(--text-muted); }
 
   .chip {
     display: inline-block;
@@ -128,16 +145,6 @@
   }
 
   .erro { color: var(--erro); }
-
-  .alerta-erro {
-    margin-top: 10px;
-    padding: 10px 12px;
-    border: 1px solid var(--erro);
-    border-radius: 8px;
-    background: rgba(224, 128, 102, 0.12);
-    color: var(--erro);
-    font-size: 13px;
-  }
 
   .topo { display: flex; justify-content: space-between; align-items: center; }
 
@@ -199,6 +206,7 @@
     color: var(--text);
     font-family: inherit;
   }
+  .card select { width: 100%; }
 
   .filtros { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-top: 10px; }
 
@@ -246,16 +254,6 @@
 
   input[type="checkbox"] { width: auto; }
 
-  .opcao-checkbox {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    font-size: 14px;
-    color: var(--text);
-    margin-top: 8px;
-    margin-right: 14px;
-  }
-
   .tag-removivel {
     display: inline-flex;
     align-items: center;
@@ -283,6 +281,9 @@
   .linha-input-botao { display: flex; gap: 6px; margin-top: 6px; }
   .linha-input-botao input { flex: 1; min-width: 0; }
   .linha-input-botao button { flex-shrink: 0; white-space: nowrap; }
+
+  .linha-dupla { display: flex; gap: 10px; }
+  .linha-dupla > div { flex: 1; min-width: 0; }
 
   /* telas estreitas: abas com texto maior que o espaço quebram linha e
      ficam com altura desigual — reduz fonte/padding pra caber numa linha */
@@ -421,7 +422,7 @@
   .toast.sucesso { border-color: var(--verde-aberto); }
   .toast.erro { border-color: var(--erro); color: var(--erro); }
 
-  /* --- loading skeleton (blocos pulsando enquanto /leads carrega) --- */
+  /* --- loading skeleton (blocos pulsando enquanto os dados carregam) --- */
   @keyframes pulso { 0%, 100% { opacity: 0.35; } 50% { opacity: 0.75; } }
 
   .skeleton { background: var(--border) !important; color: transparent !important; animation: pulso 1.3s ease-in-out infinite; }
@@ -440,6 +441,8 @@
     color: var(--text-muted);
     text-align: center;
   }
+  .estado-vazio.compacto { padding: 12px 10px; gap: 6px; }
+  .estado-vazio.compacto svg { width: 26px; height: 26px; }
 
   .estado-vazio svg { width: 40px; height: 40px; stroke: var(--text-muted); fill: none; stroke-width: 1.5; opacity: 0.7; }
   .estado-vazio p { margin: 0; font-size: 13px; }
@@ -448,11 +451,8 @@
   @keyframes entrarComFade { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
   .view-fade { animation: entrarComFade 0.24s ease; }
 
-  /* --- card resumido da lista de leads (toca pra abrir o detalhe) --- */
-  .lead-card-resumo {
-    display: flex;
-    align-items: center;
-    gap: 12px;
+  /* --- card de contato na lista (toca pra abrir o detalhe) --- */
+  .contato-card {
     border: 1px solid var(--border);
     border-radius: 10px;
     padding: 10px 12px;
@@ -461,21 +461,47 @@
     cursor: pointer;
     transition: background 0.15s ease, transform 0.1s ease;
   }
+  .contato-card:active { background: var(--bg-card); transform: scale(0.99); }
 
-  .lead-card-resumo:active { background: var(--bg-card); transform: scale(0.99); }
+  .contato-card-topo { display: flex; align-items: center; gap: 12px; }
 
-  .lead-card-resumo-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
-  .lead-card-resumo-nome { font-weight: 600; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .lead-card-resumo-sub { font-size: 12px; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .contato-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+  .contato-nome { font-weight: 600; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .contato-sub { font-size: 12px; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+  .intencoes-mini {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-top: 10px;
+    padding-top: 8px;
+    border-top: 1px solid var(--border);
+  }
+  .intencao-mini { display: flex; align-items: center; gap: 8px; font-size: 12px; min-width: 0; }
+  .intencao-mini .badge { margin-right: 0; font-size: 10px; padding: 1px 8px; flex-shrink: 0; }
+  .intencao-mini-texto { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--text-muted); }
+  .intencao-mini.fechada { opacity: 0.55; }
+  .intencoes-mais { font-size: 11px; color: var(--text-muted); }
+
+  .chip-match {
+    flex-shrink: 0;
+    padding: 1px 8px;
+    border-radius: 999px;
+    font-size: 10px;
+    font-weight: 700;
+    background: var(--amber-light);
+    color: var(--amber-dark);
+  }
 
   .status-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; background: var(--verde-aberto); }
   .status-dot.fechado { background: var(--cinza-fechado); }
   .status-dot.atrasado { background: var(--erro); }
+  .status-dot.pequeno { width: 7px; height: 7px; }
 
   .seta-ver-mais { width: 18px; height: 18px; stroke: var(--text-muted); fill: none; stroke-width: 2; flex-shrink: 0; }
 
-  /* --- tela de detalhe do lead: tela cheia, desliza da direita --- */
-  #view-lead-detalhe {
+  /* --- tela de detalhe do contato: tela cheia, desliza da direita --- */
+  #view-contato-detalhe {
     position: fixed;
     inset: 0;
     background: var(--bg);
@@ -488,7 +514,7 @@
     padding-bottom: env(safe-area-inset-bottom);
   }
 
-  #view-lead-detalhe.aberto { transform: translateX(0); }
+  #view-contato-detalhe.aberto { transform: translateX(0); }
 
   .detalhe-topo {
     display: flex;
@@ -521,7 +547,24 @@
     padding: 16px max(16px, env(safe-area-inset-right)) 24px max(16px, env(safe-area-inset-left));
   }
 
-  /* --- pull-to-refresh na lista de leads --- */
+  .cabecalho-secao { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  .cabecalho-secao h3 { margin: 0; }
+
+  .intencao-card {
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px;
+    margin-top: 10px;
+    background: var(--bg-input);
+  }
+  .intencao-card.fechada { opacity: 0.7; }
+  .intencao-topo { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+  .intencao-titulo { font-weight: 600; font-size: 15px; margin-top: 8px; }
+  .intencao-linha { font-size: 13px; color: var(--text-muted); margin-top: 3px; }
+  .intencao-matches-titulo { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted); margin-top: 12px; }
+  .intencao-card .match { background: var(--bg-card); }
+
+  /* --- pull-to-refresh na lista de contatos --- */
   .ptr-indicador {
     display: flex;
     align-items: center;
@@ -583,7 +626,7 @@
         <img src="/icons/icon-192.png" alt="" class="logo">
         <h1>Quase lá</h1>
       </div>
-      <p>Isso ajuda a sugerir etiquetas automaticamente quando você cadastra um lead.</p>
+      <p>Isso ajuda a sugerir etiquetas automaticamente quando você cadastra uma intenção.</p>
       <div class="card">
         <label>Palavras-chave que quer acompanhar (opcional)</label>
         <input id="onboarding-palavra-input" placeholder="digite e pressione Enter"
@@ -609,23 +652,23 @@
     </div>
 
     <div id="view-inicio">
-      <p>Resumo dos seus leads</p>
+      <p>Resumo dos seus contatos e negócios</p>
       <div class="dashboard-grid">
         <div class="dashboard-card">
           <span class="dashboard-numero" id="dash-total">0</span>
-          <span class="dashboard-label">Total de leads</span>
+          <span class="dashboard-label">Contatos</span>
         </div>
         <div class="dashboard-card">
           <span class="dashboard-numero" id="dash-abertos">0</span>
-          <span class="dashboard-label">Abertos</span>
+          <span class="dashboard-label">Intenções abertas</span>
         </div>
         <div class="dashboard-card">
           <span class="dashboard-numero" id="dash-fechados">0</span>
-          <span class="dashboard-label">Fechados</span>
+          <span class="dashboard-label">Intenções fechadas</span>
         </div>
         <div class="dashboard-card destaque">
           <span class="dashboard-numero" id="dash-matches">0</span>
-          <span class="dashboard-label">Com match pendente</span>
+          <span class="dashboard-label">Intenções com match</span>
         </div>
       </div>
 
@@ -636,7 +679,7 @@
     </div>
 
     <div id="view-processar" style="display:none">
-      <p>Cole a mensagem do corretor como ela chegaria no WhatsApp:</p>
+      <p>Cole a mensagem como ela chegaria no WhatsApp:</p>
       <textarea id="mensagem" placeholder="Ex: tenho um terreno industrial em Atibaia, 6 mil m2, quero 850 mil nele"></textarea>
       <br>
       <button onclick="processar()">Processar mensagem</button>
@@ -646,14 +689,14 @@
     </div>
 
     <div id="view-meusleads" style="display:none">
-      <input id="busca-leads" placeholder="Buscar por nome ou cidade..." oninput="renderizarLeads()">
+      <input id="busca-leads" placeholder="Buscar por nome, categoria ou cidade..." oninput="renderizarLeads()">
 
       <div class="filtros" id="filtros-categoria"></div>
 
-      <div class="filtros" id="filtros-papel">
-        <button class="chip-filtro ativo" data-valor="todos" onclick="definirFiltroPapel('todos', this)">Todos</button>
-        <button class="chip-filtro" data-valor="comprador" onclick="definirFiltroPapel('comprador', this)">Comprador</button>
-        <button class="chip-filtro" data-valor="vendedor" onclick="definirFiltroPapel('vendedor', this)">Vendedor</button>
+      <div class="filtros" id="filtros-direcao">
+        <button class="chip-filtro ativo" data-valor="todos" onclick="definirFiltroDirecao('todos', this)">Todos</button>
+        <button class="chip-filtro" data-valor="tenho" onclick="definirFiltroDirecao('tenho', this)">Tenho</button>
+        <button class="chip-filtro" data-valor="procuro" onclick="definirFiltroDirecao('procuro', this)">Procuro</button>
       </div>
 
       <div class="filtros">
@@ -686,45 +729,25 @@
     </nav>
   </div>
 
-  <div id="view-lead-detalhe">
+  <div id="view-contato-detalhe">
     <div class="detalhe-topo">
-      <button type="button" class="botao-icone" onclick="fecharDetalheLead()" aria-label="Voltar">
+      <button type="button" class="botao-icone" onclick="fecharDetalheContato()" aria-label="Voltar">
         <svg viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg>
       </button>
-      <span class="detalhe-titulo">Detalhes do lead</span>
+      <span class="detalhe-titulo">Detalhes do contato</span>
     </div>
 
     <div class="detalhe-conteudo">
       <div class="card">
         <div style="display:flex; align-items:center; gap:10px;">
           <span class="avatar" id="detalhe-avatar" style="width:44px; height:44px; font-size:18px;"></span>
-          <div>
+          <div style="min-width:0;">
             <div style="font-size:17px; font-weight:600;" id="detalhe-nome"></div>
-            <span class="badge" id="detalhe-papel-badge" style="margin-top:4px;"></span>
+            <div class="dashboard-label" id="detalhe-resumo"></div>
           </div>
         </div>
-
-        <div class="dashboard-grid" style="margin-top:14px;">
-          <div class="dashboard-card">
-            <span class="dashboard-numero" id="detalhe-valor" style="font-size:17px;"></span>
-            <span class="dashboard-label">Valor</span>
-          </div>
-          <div class="dashboard-card">
-            <span class="dashboard-numero" id="detalhe-categoria" style="font-size:15px;"></span>
-            <span class="dashboard-label">Categoria</span>
-          </div>
-          <div class="dashboard-card">
-            <span class="dashboard-numero" id="detalhe-status" style="font-size:15px;"></span>
-            <span class="dashboard-label">Status</span>
-          </div>
-          <div class="dashboard-card">
-            <span class="dashboard-numero" id="detalhe-cidade" style="font-size:15px;"></span>
-            <span class="dashboard-label">Cidade</span>
-          </div>
-        </div>
-
         <p class="dashboard-label" id="detalhe-proximo-contato" style="margin:10px 0 0;"></p>
-        <div id="detalhe-categorias-chips" style="margin-top:8px;"></div>
+        <div id="detalhe-contato-area"></div>
       </div>
 
       <div class="card">
@@ -733,8 +756,11 @@
       </div>
 
       <div class="card">
-        <h3>Matches sugeridos</h3>
-        <div id="detalhe-matches-area"></div>
+        <div class="cabecalho-secao">
+          <h3>Intenções</h3>
+          <button type="button" class="btn-mini" onclick="novaIntencaoParaContato(contatoDetalheAtualId)">+ Nova intenção</button>
+        </div>
+        <div id="detalhe-intencoes-area"></div>
       </div>
 
       <div class="card">
@@ -744,9 +770,8 @@
 
       <div class="card">
         <div class="filtros" style="margin-top:0;">
-          <button type="button" onclick="editarLead(leadDetalheAtualId)">Editar lead</button>
-          <button type="button" class="secundario" id="detalhe-btn-fechar" onclick="marcarFechado(leadDetalheAtualId)">Marcar como fechado</button>
-          <button type="button" class="secundario" style="border-color:var(--erro); color:var(--erro);" onclick="excluirLead(leadDetalheAtualId)">Excluir lead</button>
+          <button type="button" class="secundario" onclick="iniciarEdicaoContatoDetalhe()">Editar contato</button>
+          <button type="button" class="secundario" style="border-color:var(--erro); color:var(--erro);" onclick="excluirContato(contatoDetalheAtualId)">Excluir contato</button>
         </div>
       </div>
     </div>
@@ -755,18 +780,22 @@
   <script>
     let dadosAtuais = null;
     let abaAtual = 'login';
-    let leadsCache = [];
-    let filtroPapel = 'todos';
+    let contatosCache = []; // cada contato traz as suas intenções em contato.intencoes
+    let matchesCache = []; // pares { intencao_a, intencao_b, pontuacao, motivos, explicacao }
+    let intencoesPorId = new Map(); // id -> intenção (com .contato)
+    let matchesPorIntencao = new Map(); // id -> [{ outraId, pontuacao, explicacao }] do maior pro menor
+    let configCache = { direcoes: {}, operacoes: {}, campos: {} }; // vem de GET /config-intencoes
+    let filtroDirecao = 'todos';
     let filtroCategoria = 'todos';
     let categoriasCache = [];
     let palavrasChaveOnboarding = [];
     let nomeCorretorAtual = '';
-    let tiposLeadCache = {}; // { chave: { label, campos: {...}, campoValor } }, vem de GET /tipos-lead
     let mensagemOriginalAtual = '';
-    let idEdicaoAtual = null;
+    let idEdicaoAtual = null; // id da intenção em edição (null = cadastrando uma nova)
     let categoriasAtivasAtual = [];
-    let leadDetalheAtualId = null;
+    let contatoDetalheAtualId = null;
     let editandoNotasDetalhe = false;
+    let editandoContatoDetalhe = false;
 
     // --- toasts: substituem as mensagens de erro/sucesso em texto vermelho ---
     function mostrarToast(mensagem, tipo = 'info') {
@@ -782,30 +811,46 @@
       }, 3000);
     }
 
-    function escapeHtml(texto) {
+    // todo texto vindo do usuário passa por aqui antes de ir pra dentro de um innerHTML
+    function esc(texto) {
       return String(texto ?? '').replace(/[&<>"']/g, (c) => ({
         '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
       }[c]));
     }
 
+    function normalizarTexto(texto) {
+      return String(texto ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
+    }
+
+    function capitalizar(texto) {
+      return texto ? texto.charAt(0).toUpperCase() + texto.slice(1) : '';
+    }
+
+    function inicial(nome) {
+      return (nome || '?').trim().charAt(0).toUpperCase();
+    }
+
     // --- estados vazios (ícone + mensagem, no lugar de listas em branco) ---
-    function estadoVazio(icone, texto) {
-      return `<div class="estado-vazio">${icone}<p>${texto}</p></div>`;
+    function estadoVazio(icone, texto, compacto = false) {
+      return `<div class="estado-vazio${compacto ? ' compacto' : ''}">${icone}<p>${texto}</p></div>`;
     }
 
     const ICONE_VAZIO_LEADS = '<svg viewBox="0 0 24 24"><path d="M4 4h16l2 8v8H2v-8L4 4z"/><path d="M2 12h6l2 3h4l2-3h6"/></svg>';
     const ICONE_VAZIO_MATCHES = '<svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>';
     const ICONE_VAZIO_NOTAS = '<svg viewBox="0 0 24 24"><path d="M6 2h9l5 5v15H6V2z"/><path d="M14 2v6h6"/><path d="M9 13h6M9 17h6"/></svg>';
     const ICONE_VAZIO_ATIVIDADE = '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>';
+    const ICONE_VAZIO_INTENCOES = '<svg viewBox="0 0 24 24"><path d="M7 7h11l-3-3M17 17H6l3 3"/></svg>';
 
-    // --- loading skeleton: blocos pulsando enquanto /leads carrega ---
-    function skeletonLeads(qtd = 4) {
+    // --- loading skeleton: blocos pulsando enquanto os dados carregam ---
+    function skeletonContatos(qtd = 4) {
       return Array.from({ length: qtd }).map(() => `
-        <div class="lead-card-resumo" style="cursor:default;">
-          <span class="avatar skeleton"></span>
-          <div class="lead-card-resumo-info">
-            <span class="skeleton skeleton-linha" style="width:55%"></span>
-            <span class="skeleton skeleton-linha" style="width:35%"></span>
+        <div class="contato-card" style="cursor:default;">
+          <div class="contato-card-topo">
+            <span class="avatar skeleton"></span>
+            <div class="contato-info">
+              <span class="skeleton skeleton-linha" style="width:55%"></span>
+              <span class="skeleton skeleton-linha" style="width:35%"></span>
+            </div>
           </div>
         </div>
       `).join('');
@@ -823,28 +868,40 @@
       `).join('');
     }
 
-    function skeletonMatches() {
-      return `
-        <div class="match"><span class="skeleton skeleton-linha" style="width:60%"></span></div>
-        <div class="match"><span class="skeleton skeleton-linha" style="width:45%"></span></div>
-      `;
+    // --- direção x operação: rótulos vêm de categorias-config.js via GET /config-intencoes ---
+    function rotuloIntencao(direcao, operacao) {
+      if (!direcao) return 'Sem direção';
+      const op = configCache.operacoes[operacao];
+      if (op && op.rotulos[direcao]) return op.rotulos[direcao];
+      const dir = configCache.direcoes[direcao];
+      return `${dir ? dir.label : direcao} · ${operacao}`;
     }
 
-    function labelTipo(chave) {
-      return (tiposLeadCache[chave] && tiposLeadCache[chave].label) || chave;
+    function classeBadge(direcao) {
+      return direcao ? `badge-${direcao}` : 'badge-indefinido';
     }
 
-    // hoje só existe um tipo em TIPOS_LEAD (ver categorias-config.js); usar
-    // essa função em vez de fixar a string "geral" no código faz o front
-    // continuar funcionando sozinho se um dia voltar a ter mais de um tipo.
-    function tipoUnico() {
-      return Object.keys(tiposLeadCache)[0];
+    function formatarReais(valor) {
+      return `R$ ${Number(valor).toLocaleString('pt-BR')}`;
     }
 
-    async function carregarTiposLead() {
-      const res = await fetch('/tipos-lead');
+    // faixa aceita só um dos lados: só mínimo = "a partir de", só máximo = "até"
+    function formatarFaixa(min, max) {
+      if (min == null && max == null) return null;
+      if (min != null && max != null) return min === max ? formatarReais(min) : `${formatarReais(min)} – ${formatarReais(max)}`;
+      return min != null ? `a partir de ${formatarReais(min)}` : `até ${formatarReais(max)}`;
+    }
+
+    // maior valor citado na intenção (pra ordenar contatos por valor)
+    function valorDaIntencao(intencao) {
+      const valores = [intencao.valor_min, intencao.valor_max].filter((v) => v != null);
+      return valores.length ? Math.max(...valores) : null;
+    }
+
+    async function carregarConfig() {
+      const res = await fetch('/config-intencoes');
       if (res.status === 401) return verificarSessao();
-      tiposLeadCache = await res.json();
+      configCache = await res.json();
     }
 
     if ('serviceWorker' in navigator) {
@@ -868,7 +925,7 @@
     async function entrarNaTelaApp(nome, onboardingConcluido) {
       nomeCorretorAtual = nome;
       document.getElementById('tela-auth').style.display = 'none';
-      await carregarTiposLead();
+      await carregarConfig();
       if (!onboardingConcluido) {
         document.getElementById('tela-onboarding').style.display = '';
         return;
@@ -880,7 +937,7 @@
       document.getElementById('tela-onboarding').style.display = 'none';
       document.getElementById('tela-app').style.display = '';
       document.getElementById('corretor-nome').textContent = nome;
-      document.getElementById('avatar-corretor').textContent = (nome || '?').trim().charAt(0).toUpperCase();
+      document.getElementById('avatar-corretor').textContent = inicial(nome);
       await carregarCategorias();
       mostrarAbaApp('inicio');
     }
@@ -946,8 +1003,10 @@
       document.getElementById('auth_email').value = '';
       document.getElementById('auth_senha').value = '';
       document.getElementById('resultado').innerHTML = '';
-      fecharDetalheLead();
-      leadsCache = [];
+      fecharDetalheContato();
+      contatosCache = [];
+      matchesCache = [];
+      indexarIntencoesEMatches();
       categoriasCache = [];
       verificarSessao();
     }
@@ -968,7 +1027,7 @@
 
     function renderizarPalavrasChaveOnboarding() {
       document.getElementById('onboarding-palavras-chips').innerHTML = palavrasChaveOnboarding.map(p => `
-        <span class="tag-removivel">${p}<button type="button" onclick='removerPalavraChaveOnboarding(${JSON.stringify(p)})'>×</button></span>
+        <span class="tag-removivel">${esc(p)}<button type="button" data-valor="${esc(p)}" onclick="removerPalavraChaveOnboarding(this.dataset.valor)">×</button></span>
       `).join('');
     }
 
@@ -1025,89 +1084,52 @@
       if (aba === 'inicio') carregarInicio();
     }
 
-    // "categoria" é texto livre — mesma regra de correspondência do
-    // matching.js (igual, ou uma contendo a outra), só que calculada aqui
-    // no front pra não precisar de uma rota nova pra alimentar o dashboard.
-    function categoriasCorrespondemFront(categoriaA, categoriaB) {
-      const a = (categoriaA || '').trim().toLowerCase();
-      const b = (categoriaB || '').trim().toLowerCase();
-      if (!a || !b) return false;
-      return a === b || a.includes(b) || b.includes(a);
-    }
+    // --- dados: contatos (com intenções dentro) + pares de match ---
 
-    function cidadesCorrespondemFront(cidadeA, cidadeB) {
-      const a = (cidadeA || '').trim().toLowerCase();
-      const b = (cidadeB || '').trim().toLowerCase();
-      return !!a && a === b;
-    }
-
-    // conta quantos leads ABERTOS do corretor têm pelo menos um outro lead
-    // aberto, de papel oposto, mesma cidade e categoria correspondente —
-    // "match em potencial" ainda não fechado. Usa só o array já carregado
-    // de /leads, sem chamar /leads/:id/matches lead por lead.
-    function contarComMatchPendente(leads) {
-      const abertos = leads.filter(l => l.status === 'aberto');
-      return abertos.filter(lead => {
-        const papelOposto = lead.papel === 'comprador' ? 'vendedor' : 'comprador';
-        return abertos.some(outro =>
-          outro.id !== lead.id &&
-          outro.papel === papelOposto &&
-          cidadesCorrespondemFront(lead.cidade, outro.cidade) &&
-          categoriasCorrespondemFront(lead.categoria, outro.categoria)
-        );
-      }).length;
-    }
-
-    async function carregarInicio() {
-      document.querySelectorAll('#view-inicio .dashboard-numero').forEach(el => el.classList.add('skeleton'));
-      document.getElementById('atividade-recente').innerHTML = skeletonAtividade();
-
-      const res = await fetch('/leads');
-      if (res.status === 401) return verificarSessao();
-      leadsCache = await res.json();
-
-      document.querySelectorAll('#view-inicio .dashboard-numero').forEach(el => el.classList.remove('skeleton'));
-      renderizarDashboard(leadsCache);
-    }
-
-    function renderizarDashboard(leads) {
-      document.getElementById('dash-total').textContent = leads.length;
-      document.getElementById('dash-abertos').textContent = leads.filter(l => l.status === 'aberto').length;
-      document.getElementById('dash-fechados').textContent = leads.filter(l => l.status === 'fechado').length;
-      document.getElementById('dash-matches').textContent = contarComMatchPendente(leads);
-      renderizarAtividade(leads);
-    }
-
-    // pares de leads que se correspondem (mesma regra do matching.js) viram
-    // um evento "match encontrado", datado do lead mais recente do par —
-    // é quando o par ficou completo. Sem tabela de log: só olha o que já
-    // está em /leads. Cada par conta uma vez só (não A→B e B→A separado).
-    function calcularEventosDeMatch(leads) {
-      const abertos = leads.filter(l => l.status === 'aberto');
-      const eventos = [];
-      const paresVistos = new Set();
-
-      abertos.forEach(lead => {
-        const papelOposto = lead.papel === 'comprador' ? 'vendedor' : 'comprador';
-        abertos.forEach(outro => {
-          if (outro.id === lead.id || outro.papel !== papelOposto) return;
-          if (!cidadesCorrespondemFront(lead.cidade, outro.cidade)) return;
-          if (!categoriasCorrespondemFront(lead.categoria, outro.categoria)) return;
-
-          const chave = [lead.id, outro.id].sort((a, b) => a - b).join('-');
-          if (paresVistos.has(chave)) return;
-          paresVistos.add(chave);
-
-          const data = new Date(Math.max(new Date(lead.criado_em), new Date(outro.criado_em)));
-          eventos.push({
-            tipo: 'match',
-            data,
-            texto: `Match encontrado: ${lead.nome || '(sem nome)'} × ${outro.nome || '(sem nome)'}`,
-          });
-        });
+    // monta os índices que a lista e o detalhe consultam (intenção por id e
+    // matches de cada intenção, do mais forte pro mais fraco)
+    function indexarIntencoesEMatches() {
+      intencoesPorId = new Map();
+      contatosCache.forEach(contato => {
+        contato.intencoes.forEach(intencao => intencoesPorId.set(intencao.id, { ...intencao, contato }));
       });
 
-      return eventos;
+      matchesPorIntencao = new Map();
+      const registrar = (id, outraId, par) => {
+        if (!matchesPorIntencao.has(id)) matchesPorIntencao.set(id, []);
+        matchesPorIntencao.get(id).push({ outraId, pontuacao: par.pontuacao, explicacao: par.explicacao });
+      };
+      matchesCache.forEach(par => {
+        registrar(par.intencao_a, par.intencao_b, par);
+        registrar(par.intencao_b, par.intencao_a, par);
+      });
+      matchesPorIntencao.forEach(lista => lista.sort((x, y) => y.pontuacao - x.pontuacao));
+    }
+
+    async function carregarDados() {
+      const [resContatos, resMatches] = await Promise.all([fetch('/contatos'), fetch('/matches')]);
+      if (resContatos.status === 401 || resMatches.status === 401) {
+        verificarSessao();
+        return false;
+      }
+      contatosCache = await resContatos.json();
+      matchesCache = await resMatches.json();
+      indexarIntencoesEMatches();
+      return true;
+    }
+
+    // compara só a parte "YYYY-MM-DD" (texto) pra não cair em pegadinha de
+    // fuso horário na hora de decidir se já passou de "hoje".
+    function contatoAtrasado(contato) {
+      if (!contato.proximo_contato || !contato.intencoes.some(i => i.status === 'aberto')) return false;
+      const hoje = new Date();
+      const hojeSomente = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, '0')}-${String(hoje.getDate()).padStart(2, '0')}`;
+      return String(contato.proximo_contato).slice(0, 10) < hojeSomente;
+    }
+
+    function formatarDataCurta(dataISO) {
+      const [ano, mes, dia] = String(dataISO).slice(0, 10).split('-');
+      return `${dia}/${mes}/${ano}`;
     }
 
     function formatarDataRelativa(data) {
@@ -1124,17 +1146,51 @@
       return alvo.toLocaleDateString('pt-BR');
     }
 
-    function renderizarAtividade(leads) {
+    async function carregarInicio() {
+      document.querySelectorAll('#view-inicio .dashboard-numero').forEach(el => el.classList.add('skeleton'));
+      document.getElementById('atividade-recente').innerHTML = skeletonAtividade();
+
+      const ok = await carregarDados();
+      if (!ok) return;
+
+      document.querySelectorAll('#view-inicio .dashboard-numero').forEach(el => el.classList.remove('skeleton'));
+      renderizarDashboard();
+    }
+
+    function renderizarDashboard() {
+      const intencoes = [...intencoesPorId.values()];
+      document.getElementById('dash-total').textContent = contatosCache.length;
+      document.getElementById('dash-abertos').textContent = intencoes.filter(i => i.status === 'aberto').length;
+      document.getElementById('dash-fechados').textContent = intencoes.filter(i => i.status === 'fechado').length;
+      document.getElementById('dash-matches').textContent = [...matchesPorIntencao.keys()].length;
+      renderizarAtividade();
+    }
+
+    function descreverIntencaoCurta(intencao) {
+      return `${rotuloIntencao(intencao.direcao, intencao.operacao)} ${intencao.categoria || ''}`.trim();
+    }
+
+    // sem tabela de log: os eventos saem dos próprios dados (criação, fechamento
+    // e cada par de match, datado do momento em que o par ficou completo)
+    function renderizarAtividade() {
       const container = document.getElementById('atividade-recente');
+      const intencoes = [...intencoesPorId.values()];
 
       const eventos = [
-        ...leads.map(l => ({ tipo: 'criado', data: l.criado_em, texto: `Novo lead: ${l.nome || '(sem nome)'}` })),
-        ...leads
-          .filter(l => l.status === 'fechado' && l.fechado_em)
-          .map(l => ({ tipo: 'fechado', data: l.fechado_em, texto: `Lead fechado: ${l.nome || '(sem nome)'}` })),
-        ...calcularEventosDeMatch(leads),
+        ...contatosCache.filter(c => !c.intencoes.length).map(c => ({ tipo: 'criado', data: c.criado_em, texto: `Novo contato: ${esc(c.nome || '(sem nome)')}` })),
+        ...intencoes.map(i => ({ tipo: 'criado', data: i.criado_em, texto: `Nova intenção: ${esc(descreverIntencaoCurta(i))} — ${esc(i.contato.nome || '(sem nome)')}` })),
+        ...intencoes
+          .filter(i => i.status === 'fechado' && i.fechado_em)
+          .map(i => ({ tipo: 'fechado', data: i.fechado_em, texto: `Intenção fechada: ${esc(descreverIntencaoCurta(i))} — ${esc(i.contato.nome || '(sem nome)')}` })),
+        ...matchesCache.map(par => {
+          const a = intencoesPorId.get(par.intencao_a);
+          const b = intencoesPorId.get(par.intencao_b);
+          if (!a || !b) return null;
+          const data = new Date(Math.max(new Date(a.criado_em), new Date(b.criado_em)));
+          return { tipo: 'match', data, texto: `Match encontrado: ${esc(a.contato.nome || '(sem nome)')} × ${esc(b.contato.nome || '(sem nome)')} (${par.pontuacao}%)` };
+        }),
       ]
-        .filter(e => e.data)
+        .filter(e => e && e.data)
         .sort((a, b) => new Date(b.data) - new Date(a.data))
         .slice(0, 8);
 
@@ -1154,18 +1210,18 @@
       `).join('');
     }
 
+    // --- lista de contatos ("Meus leads") ---
+
     async function carregarMeusLeads() {
-      const listaDiv = document.getElementById('lista-leads');
-      listaDiv.innerHTML = skeletonLeads();
-      const res = await fetch('/leads');
-      if (res.status === 401) return verificarSessao();
-      leadsCache = await res.json();
+      document.getElementById('lista-leads').innerHTML = skeletonContatos();
+      const ok = await carregarDados();
+      if (!ok) return;
       renderizarLeads();
     }
 
-    function definirFiltroPapel(valor, botao) {
-      filtroPapel = valor;
-      document.querySelectorAll('#filtros-papel .chip-filtro').forEach(b => b.classList.remove('ativo'));
+    function definirFiltroDirecao(valor, botao) {
+      filtroDirecao = valor;
+      document.querySelectorAll('#filtros-direcao .chip-filtro').forEach(b => b.classList.remove('ativo'));
       botao.classList.add('ativo');
       renderizarLeads();
     }
@@ -1180,9 +1236,9 @@
     function renderizarFiltrosCategoria() {
       const container = document.getElementById('filtros-categoria');
       if (!container) return;
-      const chipTodas = `<button class="chip-filtro${filtroCategoria === 'todos' ? ' ativo' : ''}" data-valor="todos" onclick="definirFiltroCategoria('todos', this)">Todas</button>`;
+      const chipTodas = `<button class="chip-filtro${filtroCategoria === 'todos' ? ' ativo' : ''}" data-valor="todos" onclick="definirFiltroCategoria(this.dataset.valor, this)">Todas</button>`;
       const chips = categoriasCache.map(c => `
-        <button class="chip-filtro${filtroCategoria === c.nome ? ' ativo' : ''}" data-valor="${c.nome}" onclick='definirFiltroCategoria(${JSON.stringify(c.nome)}, this)'>${labelTipo(c.nome)}</button>
+        <button class="chip-filtro${filtroCategoria === c.nome ? ' ativo' : ''}" data-valor="${esc(c.nome)}" onclick="definirFiltroCategoria(this.dataset.valor, this)">${esc(c.nome)}</button>
       `).join('');
       container.innerHTML = chipTodas + chips;
     }
@@ -1194,145 +1250,170 @@
       renderizarLeads();
     }
 
-    function campoValorDoTipo(tipo) {
-      return tiposLeadCache[tipo] && tiposLeadCache[tipo].campoValor;
+    function statusDoContato(contato) {
+      if (contatoAtrasado(contato)) return 'atrasado';
+      return contato.intencoes.some(i => i.status === 'aberto') ? '' : 'fechado';
     }
 
-    function valorPrincipal(lead) {
-      const campo = campoValorDoTipo(lead.tipo);
-      return campo ? lead[campo] : null;
+    function contatoCorrespondeABusca(contato, busca) {
+      const campos = [contato.nome, ...contato.intencoes.flatMap(i => [i.categoria, i.cidade, i.descricao])];
+      return campos.some(campo => normalizarTexto(campo).includes(busca));
     }
 
-    function formatarValor(lead) {
-      const valor = valorPrincipal(lead);
-      if (valor == null) return '—';
-      return `R$ ${Number(valor).toLocaleString('pt-BR')}`;
-    }
+    const MAX_INTENCOES_NO_CARD = 4;
 
-    // compara só a parte "YYYY-MM-DD" (texto) pra não cair em pegadinha de
-    // fuso horário na hora de decidir se já passou de "hoje".
-    function leadEstaAtrasado(lead) {
-      if (lead.status !== 'aberto' || !lead.proximo_contato) return false;
-      const dataSomente = String(lead.proximo_contato).slice(0, 10);
-      const hojeSomente = new Date().toISOString().slice(0, 10);
-      return dataSomente < hojeSomente;
-    }
-
-    function formatarDataCurta(dataISO) {
-      const [ano, mes, dia] = String(dataISO).slice(0, 10).split('-');
-      return `${dia}/${mes}/${ano}`;
-    }
-
-    function classeStatusLead(lead) {
-      if (lead.status === 'fechado') return 'fechado';
-      if (leadEstaAtrasado(lead)) return 'atrasado';
-      return '';
+    function htmlIntencaoMini(intencao) {
+      const faixa = formatarFaixa(intencao.valor_min, intencao.valor_max);
+      const partes = [intencao.categoria || 'sem categoria', intencao.cidade, faixa].filter(Boolean);
+      const qtdMatches = (matchesPorIntencao.get(intencao.id) || []).length;
+      const fechada = intencao.status === 'fechado';
+      return `
+        <div class="intencao-mini${fechada ? ' fechada' : ''}">
+          <span class="badge ${classeBadge(intencao.direcao)}">${esc(rotuloIntencao(intencao.direcao, intencao.operacao))}</span>
+          <span class="intencao-mini-texto">${esc(partes.join(' · '))}</span>
+          ${qtdMatches ? `<span class="chip-match">${qtdMatches} match${qtdMatches > 1 ? 'es' : ''}</span>` : ''}
+          <span class="status-dot pequeno ${fechada ? 'fechado' : ''}"></span>
+        </div>`;
     }
 
     function renderizarLeads() {
-      const busca = document.getElementById('busca-leads').value.trim().toLowerCase();
+      const busca = normalizarTexto(document.getElementById('busca-leads').value);
       const ordenacao = document.getElementById('ordenacao-leads').value;
       const listaDiv = document.getElementById('lista-leads');
 
-      let leads = leadsCache.filter(lead => {
-        if (filtroPapel !== 'todos' && lead.papel !== filtroPapel) return false;
-        if (filtroCategoria !== 'todos' && !(lead.categorias || []).includes(filtroCategoria)) return false;
-        if (busca) {
-          const nome = (lead.nome || '').toLowerCase();
-          const cidade = (lead.cidade || '').toLowerCase();
-          const categoria = (lead.categoria || '').toLowerCase();
-          const descricao = (lead.descricao || '').toLowerCase();
-          if (![nome, cidade, categoria, descricao].some(campo => campo.includes(busca))) return false;
-        }
+      let contatos = contatosCache.filter(contato => {
+        if (filtroDirecao !== 'todos' && !contato.intencoes.some(i => i.direcao === filtroDirecao)) return false;
+        if (filtroCategoria !== 'todos' && !contato.intencoes.some(i => (i.categorias || []).includes(filtroCategoria))) return false;
+        if (busca && !contatoCorrespondeABusca(contato, busca)) return false;
         return true;
       });
 
       if (ordenacao === 'valor') {
-        leads = leads.slice().sort((a, b) => (valorPrincipal(b) ?? -Infinity) - (valorPrincipal(a) ?? -Infinity));
+        const maiorValor = contato => Math.max(-Infinity, ...contato.intencoes.map(valorDaIntencao).filter(v => v != null));
+        contatos = contatos.slice().sort((a, b) => maiorValor(b) - maiorValor(a));
       } else {
-        leads = leads.slice().sort((a, b) => b.id - a.id);
+        contatos = contatos.slice().sort((a, b) => b.id - a.id);
       }
 
-      if (!leads.length) {
+      if (!contatos.length) {
         listaDiv.innerHTML = estadoVazio(
           ICONE_VAZIO_LEADS,
-          leadsCache.length ? 'Nenhum lead encontrado com esse filtro.' : 'Nenhum lead cadastrado ainda.'
+          contatosCache.length ? 'Nenhum contato encontrado com esse filtro.' : 'Nenhum contato cadastrado ainda.'
         );
         return;
       }
 
-      listaDiv.innerHTML = leads.map(lead => `
-        <div class="lead-card-resumo" onclick="abrirDetalheLead(${lead.id})">
-          <span class="avatar">${(lead.nome || '?').trim().charAt(0).toUpperCase()}</span>
-          <div class="lead-card-resumo-info">
-            <span class="lead-card-resumo-nome">${lead.nome || '(sem nome)'}</span>
-            <span class="lead-card-resumo-sub">${lead.categoria || '—'} · ${formatarValor(lead)}</span>
-          </div>
-          <span class="status-dot ${classeStatusLead(lead)}"></span>
-          <svg class="seta-ver-mais" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg>
-        </div>
-      `).join('');
+      listaDiv.innerHTML = contatos.map(contato => {
+        const qtd = contato.intencoes.length;
+        const comMatch = contato.intencoes.filter(i => matchesPorIntencao.has(i.id)).length;
+        const sub = [`${qtd} ${qtd === 1 ? 'intenção' : 'intenções'}`, comMatch ? `${comMatch} com match` : null].filter(Boolean).join(' · ');
+        const visiveis = contato.intencoes.slice(0, MAX_INTENCOES_NO_CARD);
+        const restantes = qtd - visiveis.length;
+        return `
+          <div class="contato-card" onclick="abrirDetalheContato(${contato.id})">
+            <div class="contato-card-topo">
+              <span class="avatar">${esc(inicial(contato.nome))}</span>
+              <div class="contato-info">
+                <span class="contato-nome">${esc(contato.nome || '(sem nome)')}</span>
+                <span class="contato-sub">${esc(sub)}</span>
+              </div>
+              <span class="status-dot ${statusDoContato(contato)}"></span>
+              <svg class="seta-ver-mais" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg>
+            </div>
+            ${qtd ? `<div class="intencoes-mini">${visiveis.map(htmlIntencaoMini).join('')}${restantes > 0 ? `<span class="intencoes-mais">+ ${restantes} mais</span>` : ''}</div>` : ''}
+          </div>`;
+      }).join('');
     }
 
-    // --- tela de detalhe do lead ---
+    // --- tela de detalhe do contato ---
 
-    function abrirDetalheLead(id) {
-      leadDetalheAtualId = id;
+    function contatoDetalhe() {
+      return contatosCache.find(c => c.id === contatoDetalheAtualId);
+    }
+
+    function abrirDetalheContato(id) {
+      contatoDetalheAtualId = id;
       editandoNotasDetalhe = false;
-      renderizarDetalheLead();
-      document.getElementById('view-lead-detalhe').classList.add('aberto');
+      editandoContatoDetalhe = false;
+      renderizarDetalheContato();
+      document.querySelector('#view-contato-detalhe .detalhe-conteudo').scrollTop = 0;
+      document.getElementById('view-contato-detalhe').classList.add('aberto');
     }
 
-    function fecharDetalheLead() {
-      document.getElementById('view-lead-detalhe').classList.remove('aberto');
-      leadDetalheAtualId = null;
+    function fecharDetalheContato() {
+      document.getElementById('view-contato-detalhe').classList.remove('aberto');
+      contatoDetalheAtualId = null;
     }
 
-    function renderizarDetalheLead() {
-      const lead = leadsCache.find(l => l.id === leadDetalheAtualId);
-      if (!lead) return;
+    function renderizarDetalheContato() {
+      const contato = contatoDetalhe();
+      if (!contato) return;
 
-      document.getElementById('detalhe-avatar').textContent = (lead.nome || '?').trim().charAt(0).toUpperCase();
-      document.getElementById('detalhe-nome').textContent = lead.nome || '(sem nome)';
+      const abertas = contato.intencoes.filter(i => i.status === 'aberto').length;
+      document.getElementById('detalhe-avatar').textContent = inicial(contato.nome);
+      document.getElementById('detalhe-nome').textContent = contato.nome || '(sem nome)';
+      document.getElementById('detalhe-resumo').textContent =
+        `${contato.intencoes.length} ${contato.intencoes.length === 1 ? 'intenção' : 'intenções'} · ${abertas} ${abertas === 1 ? 'aberta' : 'abertas'}`;
 
-      const badgePapel = document.getElementById('detalhe-papel-badge');
-      badgePapel.textContent = lead.papel;
-      badgePapel.className = `badge badge-${lead.papel}`;
-
-      document.getElementById('detalhe-valor').textContent = formatarValor(lead);
-      document.getElementById('detalhe-categoria').textContent = lead.categoria || '—';
-      document.getElementById('detalhe-cidade').textContent = lead.cidade || '—';
-
-      const statusEl = document.getElementById('detalhe-status');
-      if (lead.status === 'fechado') {
-        statusEl.innerHTML = '<span class="chip chip-fechado">Fechado</span>';
-      } else if (leadEstaAtrasado(lead)) {
-        statusEl.innerHTML = '<span class="chip chip-atrasado">Atrasado</span>';
-      } else {
-        statusEl.innerHTML = '<span class="chip" style="border-color:var(--verde-aberto); color:var(--verde-aberto);">Aberto</span>';
-      }
-
-      document.getElementById('detalhe-proximo-contato').textContent =
-        lead.proximo_contato ? `Próximo contato: ${formatarDataCurta(lead.proximo_contato)}` : '';
-
-      document.getElementById('detalhe-categorias-chips').innerHTML = (lead.categorias && lead.categorias.length)
-        ? lead.categorias.map(c => `<span class="chip chip-pequeno">${labelTipo(c)}</span>`).join('')
+      document.getElementById('detalhe-proximo-contato').innerHTML = contato.proximo_contato
+        ? `Próximo contato: ${formatarDataCurta(contato.proximo_contato)}${contatoAtrasado(contato) ? ' <span class="chip chip-atrasado">Atrasado</span>' : ''}`
         : '';
 
-      document.getElementById('detalhe-btn-fechar').style.display = lead.status === 'fechado' ? 'none' : '';
-
-      renderizarNotasDetalhe(lead);
-      renderizarHistoricoDetalhe(lead);
-      carregarMatchesDetalhe(lead.id);
+      renderizarEdicaoContatoDetalhe(contato);
+      renderizarNotasDetalhe(contato);
+      renderizarIntencoesDetalhe(contato);
+      renderizarHistoricoDetalhe(contato);
     }
 
-    function renderizarNotasDetalhe(lead) {
+    function renderizarEdicaoContatoDetalhe(contato) {
+      const area = document.getElementById('detalhe-contato-area');
+      if (!editandoContatoDetalhe) {
+        area.innerHTML = '';
+        return;
+      }
+      area.innerHTML = `
+        <label>Nome</label>
+        <input id="detalhe-edit-nome" value="${esc(contato.nome)}">
+        <label>Próximo contato</label>
+        <input type="date" id="detalhe-edit-proximo" value="${contato.proximo_contato ? esc(String(contato.proximo_contato).slice(0, 10)) : ''}">
+        <div class="filtros" style="margin-top:10px;">
+          <button type="button" class="btn-mini" onclick="salvarEdicaoContatoDetalhe()">Salvar</button>
+          <button type="button" class="secundario btn-mini" onclick="cancelarEdicaoContatoDetalhe()">Cancelar</button>
+        </div>`;
+    }
+
+    function iniciarEdicaoContatoDetalhe() {
+      editandoContatoDetalhe = true;
+      renderizarEdicaoContatoDetalhe(contatoDetalhe());
+    }
+
+    function cancelarEdicaoContatoDetalhe() {
+      editandoContatoDetalhe = false;
+      renderizarEdicaoContatoDetalhe(contatoDetalhe());
+    }
+
+    async function salvarEdicaoContatoDetalhe() {
+      const nome = document.getElementById('detalhe-edit-nome').value.trim();
+      if (!nome) {
+        mostrarToast('O nome do contato é obrigatório.', 'erro');
+        return;
+      }
+      const proximo = document.getElementById('detalhe-edit-proximo').value || null;
+      const ok = await atualizarContato(contatoDetalheAtualId, { nome, proximo_contato: proximo });
+      if (!ok) return;
+      editandoContatoDetalhe = false;
+      mostrarToast('Contato atualizado.', 'sucesso');
+      renderizarDetalheContato();
+      renderizarLeads();
+    }
+
+    function renderizarNotasDetalhe(contato) {
       const area = document.getElementById('detalhe-notas-area');
 
       if (editandoNotasDetalhe) {
         area.innerHTML = `
           <div class="lead-notas">
-            <textarea id="detalhe-notas-textarea" placeholder="Escreva uma nota...">${escapeHtml(lead.notas || '')}</textarea>
+            <textarea id="detalhe-notas-textarea" placeholder="Escreva uma nota...">${esc(contato.notas || '')}</textarea>
             <div class="filtros" style="margin-top:0;">
               <button type="button" class="btn-mini" onclick="salvarNotasDetalhe()">Salvar</button>
               <button type="button" class="secundario btn-mini" onclick="cancelarEdicaoNotasDetalhe()">Cancelar</button>
@@ -1342,43 +1423,41 @@
         return;
       }
 
-      if (!lead.notas) {
+      if (!contato.notas) {
         area.innerHTML = estadoVazio(ICONE_VAZIO_NOTAS, 'Nenhuma nota ainda.') +
           `<button type="button" class="secundario btn-mini" onclick="iniciarEdicaoNotasDetalhe()">Adicionar nota</button>`;
         return;
       }
 
       area.innerHTML = `
-        <p style="white-space:pre-wrap; margin:0;">${escapeHtml(lead.notas)}</p>
+        <p style="white-space:pre-wrap; margin:0 0 8px;">${esc(contato.notas)}</p>
         <button type="button" class="secundario btn-mini" onclick="iniciarEdicaoNotasDetalhe()">Editar nota</button>`;
     }
 
     function iniciarEdicaoNotasDetalhe() {
       editandoNotasDetalhe = true;
-      renderizarNotasDetalhe(leadsCache.find(l => l.id === leadDetalheAtualId));
+      renderizarNotasDetalhe(contatoDetalhe());
     }
 
     function cancelarEdicaoNotasDetalhe() {
       editandoNotasDetalhe = false;
-      renderizarNotasDetalhe(leadsCache.find(l => l.id === leadDetalheAtualId));
+      renderizarNotasDetalhe(contatoDetalhe());
     }
 
-    // reconstrói o payload completo do lead (o PUT reescreve tudo) trocando só
-    // o campo indicado — usado pra editar a nota sem passar pelo formulário
-    // inteiro. Atualiza o leadsCache local com a resposta, pra não precisar
-    // recarregar tudo de novo do servidor.
-    async function atualizarCampoLead(id, campo, valor) {
-      const lead = leadsCache.find(l => l.id === id);
-      if (!lead) return false;
+    // o PUT reescreve nome, notas e próximo contato de uma vez, então manda de
+    // volta o que o contato já tinha, trocando só o que mudou. Atualiza o
+    // cache local com a resposta (mantendo as intenções, que não vêm no PUT).
+    async function atualizarContato(id, mudancas) {
+      const contato = contatosCache.find(c => c.id === id);
+      if (!contato) return false;
 
-      const defTipo = tiposLeadCache[lead.tipo];
-      const camposEspecificos = defTipo ? Object.keys(defTipo.campos) : [];
-      const payload = { tipo: lead.tipo, nome: lead.nome, papel: lead.papel, cidade: lead.cidade };
-      camposEspecificos.forEach(c => { payload[c] = lead[c]; });
-      payload[campo] = valor;
-      payload.categorias = lead.categorias || [];
-
-      const res = await fetch(`/leads/${id}`, {
+      const payload = {
+        nome: contato.nome,
+        notas: contato.notas,
+        proximo_contato: contato.proximo_contato ? String(contato.proximo_contato).slice(0, 10) : null,
+        ...mudancas,
+      };
+      const res = await fetch(`/contatos/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
@@ -1387,62 +1466,105 @@
       const data = await res.json();
       if (data.erro) { mostrarToast(data.erro, 'erro'); return false; }
 
-      const idx = leadsCache.findIndex(l => l.id === id);
-      if (idx !== -1) leadsCache[idx] = data.lead;
+      Object.assign(contato, data.contato);
+      indexarIntencoesEMatches();
       return true;
     }
 
     async function salvarNotasDetalhe() {
-      const id = leadDetalheAtualId;
-      const novaNota = document.getElementById('detalhe-notas-textarea').value;
-      const ok = await atualizarCampoLead(id, 'notas', novaNota);
+      const notas = document.getElementById('detalhe-notas-textarea').value;
+      const ok = await atualizarContato(contatoDetalheAtualId, { notas });
       if (!ok) return;
 
       editandoNotasDetalhe = false;
       mostrarToast('Nota salva.', 'sucesso');
-      const lead = leadsCache.find(l => l.id === id);
-      renderizarNotasDetalhe(lead);
-      renderizarHistoricoDetalhe(lead);
-      renderizarLeads();
+      renderizarDetalheContato();
     }
 
-    function renderizarHistoricoDetalhe(lead) {
-      const itens = [
-        { rotulo: 'Criado em', data: lead.criado_em },
-        lead.atualizado_em ? { rotulo: 'Editado em', data: lead.atualizado_em } : null,
-        lead.fechado_em ? { rotulo: 'Fechado em', data: lead.fechado_em } : null,
-      ].filter(Boolean);
+    function htmlMatchDaIntencao(match) {
+      const outra = intencoesPorId.get(match.outraId);
+      if (!outra) return '';
+      const detalhes = [outra.categoria, outra.cidade, formatarFaixa(outra.valor_min, outra.valor_max)].filter(Boolean).join(' · ');
+      return `
+        <div class="match clicavel" onclick="abrirDetalheContato(${outra.contato.id})">
+          <div class="match-topo">
+            <span class="badge ${classeBadge(outra.direcao)}" style="margin-right:0;">${esc(rotuloIntencao(outra.direcao, outra.operacao))}</span>
+            <strong>${esc(outra.contato.nome || '(sem nome)')}</strong>
+            <span class="chip-pontuacao">${match.pontuacao}%</span>
+          </div>
+          <div class="match-detalhe">${esc(detalhes)}</div>
+          <div class="match-explicacao">${esc(capitalizar(match.explicacao))}</div>
+        </div>`;
+    }
+
+    function htmlIntencaoDetalhe(intencao) {
+      const fechada = intencao.status === 'fechado';
+      const faixa = formatarFaixa(intencao.valor_min, intencao.valor_max);
+      const matches = matchesPorIntencao.get(intencao.id) || [];
+
+      let blocoMatches = '';
+      if (!fechada) {
+        blocoMatches = `<div class="intencao-matches-titulo">Matches sugeridos</div>` + (matches.length
+          ? matches.map(htmlMatchDaIntencao).join('')
+          : estadoVazio(ICONE_VAZIO_MATCHES, intencao.direcao ? 'Nenhum match encontrado ainda.' : 'Defina a direção (tenho ou procuro) pra buscar matches.', true));
+      }
+
+      return `
+        <div class="intencao-card${fechada ? ' fechada' : ''}">
+          <div class="intencao-topo">
+            <span class="badge ${classeBadge(intencao.direcao)}">${esc(rotuloIntencao(intencao.direcao, intencao.operacao))}</span>
+            <span class="dashboard-label">${esc((configCache.operacoes[intencao.operacao] || {}).label || intencao.operacao)}</span>
+            ${fechada ? '<span class="chip chip-fechado">Fechada</span>' : ''}
+          </div>
+          <div class="intencao-titulo">${esc(intencao.categoria || 'Sem categoria')}</div>
+          ${intencao.descricao ? `<div class="intencao-linha">${esc(intencao.descricao)}</div>` : ''}
+          <div class="intencao-linha">${esc([intencao.cidade, faixa].filter(Boolean).join(' · ') || 'Sem cidade nem valor informados')}</div>
+          ${!intencao.direcao && intencao.papel_original ? `<div class="intencao-linha erro">Papel original: "${esc(String(intencao.papel_original).trim())}". Edite pra dizer se você tem ou procura.</div>` : ''}
+          ${(intencao.categorias && intencao.categorias.length) ? `<div style="margin-top:8px;">${intencao.categorias.map(c => `<span class="chip chip-pequeno">${esc(c)}</span>`).join(' ')}</div>` : ''}
+          ${blocoMatches}
+          <div class="filtros" style="margin-top:12px;">
+            <button type="button" class="secundario btn-mini" onclick="editarIntencao(${intencao.id})">Editar</button>
+            ${fechada ? '' : `<button type="button" class="secundario btn-mini" onclick="fecharIntencao(${intencao.id})">Marcar como fechada</button>`}
+            <button type="button" class="secundario btn-mini perigo" onclick="excluirIntencao(${intencao.id})">Excluir</button>
+          </div>
+        </div>`;
+    }
+
+    function renderizarIntencoesDetalhe(contato) {
+      const area = document.getElementById('detalhe-intencoes-area');
+      if (!contato.intencoes.length) {
+        area.innerHTML = estadoVazio(ICONE_VAZIO_INTENCOES, 'Este contato ainda não tem intenções.');
+        return;
+      }
+      // abertas primeiro; dentro de cada grupo, as mais novas em cima
+      const ordenadas = contato.intencoes.slice().sort((a, b) => (a.status === 'fechado') - (b.status === 'fechado') || b.id - a.id);
+      area.innerHTML = ordenadas.map(htmlIntencaoDetalhe).join('');
+    }
+
+    function renderizarHistoricoDetalhe(contato) {
+      // "peso" desempata horários iguais (contato e 1ª intenção nascem na mesma
+      // transação): o contato é sempre o mais antigo, então fica por último
+      const itens = [{ rotulo: 'Contato criado', data: contato.criado_em, peso: 0 }];
+      if (contato.atualizado_em) itens.push({ rotulo: 'Contato editado', data: contato.atualizado_em, peso: 1 });
+      contato.intencoes.forEach(i => {
+        const nome = descreverIntencaoCurta(i);
+        itens.push({ rotulo: `Intenção criada: ${nome}`, data: i.criado_em, peso: 1 });
+        if (i.atualizado_em) itens.push({ rotulo: `Intenção editada: ${nome}`, data: i.atualizado_em, peso: 1 });
+        if (i.fechado_em) itens.push({ rotulo: `Intenção fechada: ${nome}`, data: i.fechado_em, peso: 1 });
+      });
+      itens.sort((a, b) => new Date(b.data) - new Date(a.data) || b.peso - a.peso);
 
       document.getElementById('detalhe-historico-area').innerHTML = itens.map(item => `
         <div class="atividade-item">
           <div class="atividade-texto">
-            <span>${item.rotulo}</span>
+            <span>${esc(item.rotulo)}</span>
             <span class="atividade-data">${new Date(item.data).toLocaleString('pt-BR')}</span>
           </div>
         </div>
       `).join('');
     }
 
-    async function carregarMatchesDetalhe(id) {
-      const area = document.getElementById('detalhe-matches-area');
-      area.innerHTML = skeletonMatches();
-
-      const res = await fetch(`/leads/${id}/matches`);
-      if (res.status === 401) return verificarSessao();
-      const data = await res.json();
-      if (leadDetalheAtualId !== id) return; // já saiu da tela antes da resposta chegar
-
-      if (data.erro || !data.matches.length) {
-        area.innerHTML = estadoVazio(ICONE_VAZIO_MATCHES, 'Nenhum match encontrado ainda.');
-        return;
-      }
-
-      area.innerHTML = data.matches.map(m => `
-        <div class="match"><span class="badge badge-${m.papel}">${m.papel}</span>${m.nome || '(sem nome)'} — diferença: ${m.diferenca}</div>
-      `).join('');
-    }
-
-    // --- pull-to-refresh na lista de leads ---
+    // --- pull-to-refresh na lista de contatos ---
     function iniciarPullToRefresh() {
       const area = document.getElementById('view-meusleads');
       const indicador = document.getElementById('ptr-indicador');
@@ -1477,37 +1599,83 @@
       });
     }
 
-    async function marcarFechado(id) {
-      if (!confirm('Marcar esse lead como fechado? Ele para de entrar nas buscas de match.')) return;
-      const res = await fetch(`/leads/${id}/fechar`, { method: 'POST' });
-      if (res.status === 401) return verificarSessao();
-      mostrarToast('Lead marcado como fechado.', 'sucesso');
-      fecharDetalheLead();
-      await carregarMeusLeads();
+    // --- ações do detalhe ---
+
+    // recarrega tudo do servidor e redesenha o que estiver na tela
+    async function recarregarTela() {
+      const ok = await carregarDados();
+      if (!ok) return;
+      renderizarLeads();
+      if (contatoDetalhe()) renderizarDetalheContato();
+      else if (contatoDetalheAtualId != null) fecharDetalheContato();
     }
 
-    async function excluirLead(id) {
-      if (!confirm('Excluir esse lead? Essa ação não pode ser desfeita.')) return;
-      const res = await fetch(`/leads/${id}`, { method: 'DELETE' });
+    async function fecharIntencao(id) {
+      if (!confirm('Marcar essa intenção como fechada? Ela para de entrar nas buscas de match.')) return;
+      const res = await fetch(`/intencoes/${id}/fechar`, { method: 'POST' });
       if (res.status === 401) return verificarSessao();
-      mostrarToast('Lead excluído.', 'sucesso');
-      fecharDetalheLead();
-      await carregarMeusLeads();
+      const data = await res.json();
+      if (data.erro) { mostrarToast(data.erro, 'erro'); return; }
+      mostrarToast('Intenção marcada como fechada.', 'sucesso');
+      await recarregarTela();
     }
 
-    function editarLead(id) {
-      const lead = leadsCache.find(l => l.id === id);
-      if (!lead) return;
+    async function excluirIntencao(id) {
+      if (!confirm('Excluir essa intenção? Essa ação não pode ser desfeita.')) return;
+      const res = await fetch(`/intencoes/${id}`, { method: 'DELETE' });
+      if (res.status === 401) return verificarSessao();
+      const data = await res.json();
+      if (data.erro) { mostrarToast(data.erro, 'erro'); return; }
+      mostrarToast('Intenção excluída.', 'sucesso');
+      await recarregarTela();
+    }
 
-      fecharDetalheLead();
+    async function excluirContato(id) {
+      const contato = contatosCache.find(c => c.id === id);
+      if (!contato) return;
+      const qtd = contato.intencoes.length;
+      const aviso = qtd
+        ? `Excluir "${contato.nome || '(sem nome)'}" e as ${qtd} intenç${qtd === 1 ? 'ão' : 'ões'} dele(a)? Essa ação não pode ser desfeita.`
+        : `Excluir "${contato.nome || '(sem nome)'}"? Essa ação não pode ser desfeita.`;
+      if (!confirm(aviso)) return;
 
-      const defTipo = tiposLeadCache[lead.tipo];
-      const camposEspecificos = defTipo ? Object.keys(defTipo.campos) : [];
-      const dados = { tipo: lead.tipo, nome: lead.nome, papel: lead.papel, cidade: lead.cidade };
-      camposEspecificos.forEach(campo => { dados[campo] = lead[campo]; });
+      const res = await fetch(`/contatos/${id}`, { method: 'DELETE' });
+      if (res.status === 401) return verificarSessao();
+      const data = await res.json();
+      if (data.erro) { mostrarToast(data.erro, 'erro'); return; }
+      mostrarToast('Contato excluído.', 'sucesso');
+      fecharDetalheContato();
+      await recarregarTela();
+    }
 
+    // --- formulário de intenção (novo lead / editar) ---
+
+    function editarIntencao(id) {
+      const intencao = intencoesPorId.get(id);
+      if (!intencao) return;
+
+      fecharDetalheContato();
       mostrarAbaApp('processar');
-      mostrarFormularioConfirmacao(dados, lead.mensagem_original || '', lead.id, lead.categorias || []);
+      mostrarFormularioConfirmacao({
+        contatoId: intencao.contato.id,
+        nome: intencao.contato.nome,
+        direcao: intencao.direcao || '',
+        operacao: intencao.operacao,
+        categoria: intencao.categoria,
+        descricao: intencao.descricao,
+        cidade: intencao.cidade,
+        valor_min: intencao.valor_min,
+        valor_max: intencao.valor_max,
+      }, intencao.mensagem_original || '', intencao.id, intencao.categorias || []);
+    }
+
+    function novaIntencaoParaContato(contatoId) {
+      const contato = contatosCache.find(c => c.id === contatoId);
+      if (!contato) return;
+
+      fecharDetalheContato();
+      mostrarAbaApp('processar');
+      mostrarFormularioConfirmacao({ contatoId, nome: contato.nome, direcao: '', operacao: 'venda' }, '(preenchido manualmente, sem IA)');
     }
 
     async function processar() {
@@ -1527,8 +1695,11 @@
         const data = await res.json();
         if (data.erro) throw new Error(data.erro);
 
-        dadosAtuais = data.dadosExtraidos;
-        mostrarFormularioConfirmacao(dadosAtuais, texto);
+        // se a IA achou um nome que já é de um contato, já deixa ele selecionado
+        const dados = data.dadosExtraidos;
+        const existente = dados.nome && contatosCache.find(c => normalizarTexto(c.nome) === normalizarTexto(dados.nome));
+        if (existente) dados.contatoId = existente.id;
+        mostrarFormularioConfirmacao(dados, texto);
       } catch (e) {
         resDiv.innerHTML = '';
         mostrarToast(`Erro: ${e.message}`, 'erro');
@@ -1536,7 +1707,7 @@
     }
 
     function preencherManualmente() {
-      mostrarFormularioConfirmacao({ tipo: tipoUnico(), nome: '', papel: '', cidade: '' }, '(preenchido manualmente, sem IA)');
+      mostrarFormularioConfirmacao({ nome: '', direcao: '', operacao: 'venda' }, '(preenchido manualmente, sem IA)');
     }
 
     // ponto de entrada: guarda o estado do formulário nas variáveis top-level
@@ -1549,67 +1720,107 @@
       renderizarFormularioLead();
     }
 
+    function opcoesSelect(mapa, selecionado, textoDe) {
+      return Object.entries(mapa)
+        .map(([chave, def]) => `<option value="${esc(chave)}"${chave === selecionado ? ' selected' : ''}>${esc(textoDe(def))}</option>`)
+        .join('');
+    }
+
     function renderizarFormularioLead() {
       const dados = dadosAtuais;
-      const defTipo = tiposLeadCache[dados.tipo] || tiposLeadCache[tipoUnico()];
+      const editando = idEdicaoAtual != null;
+      const campos = configCache.campos;
 
-      let html = `<div class="card"><h3>${idEdicaoAtual ? 'Editar lead' : 'Confira e confirme'}:</h3>`;
+      let html = `<div class="card"><h3>${editando ? 'Editar intenção' : 'Confira e confirme'}:</h3>`;
       if (dados.campos_faltando && dados.campos_faltando.length) {
-        html += `<p class="erro">Faltando: ${dados.campos_faltando.join(', ')}</p>`;
+        html += `<p class="erro">Faltando: ${esc(dados.campos_faltando.join(', '))}</p>`;
       }
 
-      html += `<label>nome</label><input id="campo_nome" value="${dados.nome ?? ''}">`;
-      html += `<label>papel</label><input id="campo_papel" value="${dados.papel ?? ''}" placeholder="comprador | vendedor">`;
-      html += `<label>cidade</label><input id="campo_cidade" value="${dados.cidade ?? ''}">`;
-
-      if (defTipo) {
-        Object.entries(defTipo.campos).forEach(([campo, meta]) => {
-          const label = meta.label + (meta.opcional ? ' (opcional)' : '');
-          const valor = dados[campo] ?? '';
-          if (meta.tipoDado === 'data') {
-            html += `<label>${label}</label><input type="date" id="campo_${campo}" value="${valor ? String(valor).slice(0, 10) : ''}">`;
-          } else if (campo === 'notas') {
-            html += `<label>${label}</label><textarea id="campo_${campo}">${valor}</textarea>`;
-          } else {
-            html += `<label>${label}</label><input id="campo_${campo}" value="${valor}">`;
-          }
-        });
+      // contato: já existente (select) ou novo (campos abaixo)
+      if (editando) {
+        html += `<label>Contato</label><input value="${esc(dados.nome)}" disabled>`;
+      } else {
+        html += `<label>Contato</label><select id="campo_contato" onchange="alternarCamposNovoContato()">
+          <option value="">➕ Novo contato</option>
+          ${contatosCache.map(c => `<option value="${c.id}"${c.id === dados.contatoId ? ' selected' : ''}>${esc(c.nome || '(sem nome)')}</option>`).join('')}
+        </select>
+        <div id="campos-novo-contato">
+          <label>Nome do novo contato</label><input id="campo_nome" value="${esc(dados.nome)}">
+          <div class="linha-dupla">
+            <div><label>Próximo contato (opcional)</label><input type="date" id="campo_proximo_contato"></div>
+          </div>
+          <label>Notas (opcional)</label><textarea id="campo_notas" style="height:56px;"></textarea>
+        </div>`;
       }
 
-      html += '<label>Categorias</label><div class="filtros" id="categorias-lead">';
+      html += `<div class="linha-dupla">
+        <div><label>Direção</label><select id="campo_direcao" onchange="atualizarPreviaRotulo()">
+          <option value="">Escolha...</option>${opcoesSelect(configCache.direcoes, dados.direcao, d => d.label)}
+        </select></div>
+        <div><label>Operação</label><select id="campo_operacao" onchange="atualizarPreviaRotulo()">
+          ${opcoesSelect(configCache.operacoes, dados.operacao, o => o.label)}
+        </select></div>
+      </div>
+      <p id="previa-rotulo" style="margin:8px 0 0;"></p>`;
+
+      html += `<label>${esc(campos.categoria.label)}</label><input id="campo_categoria" value="${esc(dados.categoria)}">`;
+      html += `<label>${esc(campos.descricao.label)}</label><input id="campo_descricao" value="${esc(dados.descricao)}">`;
+      html += `<label>Cidade</label><input id="campo_cidade" value="${esc(dados.cidade)}">`;
+      html += `<div class="linha-dupla">
+        <div><label>${esc(campos.valor_min.label)}</label><input type="number" min="0" step="any" inputmode="decimal" id="campo_valor_min" value="${esc(dados.valor_min)}"></div>
+        <div><label>${esc(campos.valor_max.label)}</label><input type="number" min="0" step="any" inputmode="decimal" id="campo_valor_max" value="${esc(dados.valor_max)}"></div>
+      </div>
+      <p style="margin:6px 0 0; font-size:12px;">Pode preencher só um dos valores: só o mínimo vira "a partir de", só o máximo vira "até".</p>`;
+
+      html += '<label>Etiquetas</label><div class="filtros" id="categorias-lead">';
       html += categoriasCache.map(c => {
         const ativo = categoriasAtivasAtual.includes(c.nome) ? ' ativo' : '';
-        return `<button type="button" class="chip-filtro${ativo}" data-nome="${c.nome}" onclick="this.classList.toggle('ativo')">${labelTipo(c.nome)}</button>`;
+        return `<button type="button" class="chip-filtro${ativo}" data-nome="${esc(c.nome)}" onclick="this.classList.toggle('ativo')">${esc(c.nome)}</button>`;
       }).join('');
       html += '</div>';
       html += `
         <div class="linha-input-botao">
-          <input id="nova-categoria-lead" placeholder="nova categoria..."
+          <input id="nova-categoria-lead" placeholder="nova etiqueta..."
                  onkeydown="if(event.key==='Enter'){event.preventDefault();adicionarNovaCategoriaAoForm();}">
           <button type="button" class="secundario btn-mini" onclick="adicionarNovaCategoriaAoForm()">+ Adicionar</button>
         </div>`;
 
-      html += `<button onclick="confirmar()">${idEdicaoAtual ? 'Salvar alterações' : 'Confirmar lead'}</button></div>`;
+      html += `<button onclick="confirmar()">${editando ? 'Salvar alterações' : 'Confirmar'}</button></div>`;
       document.getElementById('resultado').innerHTML = html;
 
+      if (!editando) alternarCamposNovoContato();
+      atualizarPreviaRotulo();
       religarSugestaoCategorias();
     }
 
-    // compara o texto do lead (mensagem + todos os campos já preenchidos)
-    // com o nome de cada categoria do corretor; usado pra pré-marcar
-    // sugestões automaticamente.
+    function alternarCamposNovoContato() {
+      const select = document.getElementById('campo_contato');
+      const bloco = document.getElementById('campos-novo-contato');
+      if (select && bloco) bloco.style.display = select.value ? 'none' : '';
+    }
+
+    function atualizarPreviaRotulo() {
+      const direcao = document.getElementById('campo_direcao').value;
+      const operacao = document.getElementById('campo_operacao').value;
+      document.getElementById('previa-rotulo').innerHTML = direcao
+        ? `Vai ficar como: <span class="badge ${classeBadge(direcao)}">${esc(rotuloIntencao(direcao, operacao))}</span>`
+        : 'Escolha se você <strong>tem</strong> ou <strong>procura</strong> — o match cruza os dois lados.';
+    }
+
+    // compara o texto da intenção (mensagem + campos de texto já preenchidos)
+    // com o nome de cada etiqueta do corretor; usado pra pré-marcar sugestões.
     function sugerirCategorias(dados, mensagemOriginal) {
-      const valores = Object.keys(dados).filter(k => k !== 'campos_faltando').map(k => dados[k]);
-      const texto = [mensagemOriginal, ...valores].filter(Boolean).join(' ').toLowerCase();
-      return categoriasCache.filter(c => texto.includes(c.nome.toLowerCase())).map(c => c.nome);
+      const texto = normalizarTexto([mensagemOriginal, dados.nome, dados.categoria, dados.descricao, dados.cidade].filter(Boolean).join(' '));
+      return categoriasCache.filter(c => texto.includes(normalizarTexto(c.nome))).map(c => c.nome);
     }
 
     // reavalia as sugestões conforme o corretor digita (preenchimento manual);
     // só ATIVA chips que passam a bater, nunca desativa o que o corretor já
-    // escolheu. Olha todo campo_* que estiver na tela no momento, seja qual
-    // for o tipo selecionado.
+    // escolheu. Só olha campos de texto (não números, datas nem selects).
+    const SELETOR_CAMPOS_TEXTO = '#resultado input[id^="campo_"]:not([type="number"]):not([type="date"]), #resultado textarea[id^="campo_"]';
+
     function religarSugestaoCategorias() {
-      document.querySelectorAll('#resultado [id^="campo_"]').forEach(el => {
+      document.querySelectorAll(SELETOR_CAMPOS_TEXTO).forEach(el => {
         el.addEventListener('input', atualizarSugestoesCategorias);
       });
     }
@@ -1617,9 +1828,9 @@
     function atualizarSugestoesCategorias() {
       const container = document.getElementById('categorias-lead');
       if (!container) return;
-      const texto = [...document.querySelectorAll('#resultado [id^="campo_"]')].map(el => el.value).join(' ').toLowerCase();
+      const texto = normalizarTexto([...document.querySelectorAll(SELETOR_CAMPOS_TEXTO)].map(el => el.value).join(' '));
       container.querySelectorAll('.chip-filtro').forEach(botao => {
-        const nome = (botao.dataset.nome || '').toLowerCase();
+        const nome = normalizarTexto(botao.dataset.nome);
         if (nome && texto.includes(nome)) botao.classList.add('ativo');
       });
     }
@@ -1632,7 +1843,7 @@
 
       const container = document.getElementById('categorias-lead');
       const existente = [...container.querySelectorAll('.chip-filtro')]
-        .find(b => (b.dataset.nome || '').toLowerCase() === nome.toLowerCase());
+        .find(b => normalizarTexto(b.dataset.nome) === normalizarTexto(nome));
       if (existente) {
         existente.classList.add('ativo');
         return;
@@ -1647,30 +1858,46 @@
       container.appendChild(botao);
     }
 
+    function lerCampo(id) {
+      const valor = document.getElementById(id)?.value ?? '';
+      return valor.trim() === '' ? null : valor.trim();
+    }
+
+    function lerNumeroCampo(id) {
+      const valor = lerCampo(id);
+      return valor === null ? null : Number(valor);
+    }
+
     async function confirmar() {
-      const tipo = dadosAtuais.tipo || tipoUnico();
-      const defTipo = tiposLeadCache[tipo];
-      const camposEspecificos = defTipo ? Object.keys(defTipo.campos) : [];
-      const todosCampos = ['nome', 'papel', 'cidade', ...camposEspecificos];
+      const editando = idEdicaoAtual != null;
+      const payload = {
+        direcao: lerCampo('campo_direcao'),
+        operacao: lerCampo('campo_operacao'),
+        categoria: lerCampo('campo_categoria'),
+        descricao: lerCampo('campo_descricao'),
+        cidade: lerCampo('campo_cidade'),
+        valor_min: lerNumeroCampo('campo_valor_min'),
+        valor_max: lerNumeroCampo('campo_valor_max'),
+        mensagemOriginal: mensagemOriginalAtual,
+        categorias: [...document.querySelectorAll('#categorias-lead .chip-filtro.ativo')].map(b => b.dataset.nome),
+      };
 
-      const payload = { tipo };
-      todosCampos.forEach(campo => {
-        const valor = document.getElementById(`campo_${campo}`)?.value ?? '';
-        if (valor === '') { payload[campo] = null; return; }
-        // só converte pra número o campo que a config marcar como 'numero'
-        // (ex: valor_aproximado) — nome/papel/cidade/descricao/categoria
-        // continuam texto mesmo se o corretor digitar só dígitos.
-        const meta = defTipo && defTipo.campos[campo];
-        payload[campo] = meta && meta.tipoDado === 'numero' ? Number(valor) : valor;
-      });
-      payload.mensagemOriginal = mensagemOriginalAtual;
-      payload.categorias = [...document.querySelectorAll('#categorias-lead .chip-filtro.ativo')].map(b => b.dataset.nome);
+      if (!payload.direcao) { mostrarToast('Escolha se você tem ou procura.', 'erro'); return; }
 
-      const url = idEdicaoAtual ? `/leads/${idEdicaoAtual}` : '/leads';
-      const metodo = idEdicaoAtual ? 'PUT' : 'POST';
+      if (!editando) {
+        const contatoId = lerCampo('campo_contato');
+        if (contatoId) {
+          payload.contatoId = Number(contatoId);
+        } else {
+          payload.nome = lerCampo('campo_nome');
+          payload.notas = lerCampo('campo_notas');
+          payload.proximo_contato = lerCampo('campo_proximo_contato');
+          if (!payload.nome) { mostrarToast('Informe o nome do novo contato (ou escolha um existente).', 'erro'); return; }
+        }
+      }
 
-      const res = await fetch(url, {
-        method: metodo,
+      const res = await fetch(editando ? `/intencoes/${idEdicaoAtual}` : '/intencoes', {
+        method: editando ? 'PUT' : 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
@@ -1681,22 +1908,37 @@
         return;
       }
 
-      mostrarToast(idEdicaoAtual ? 'Lead atualizado!' : 'Lead salvo!', 'sucesso');
+      mostrarToast(editando ? 'Intenção atualizada!' : 'Intenção salva!', 'sucesso');
 
-      let html = `<div class="card"><h3>${idEdicaoAtual ? 'Lead atualizado!' : 'Lead salvo!'}</h3>`;
+      // recarrega etiquetas (pode ter criado uma nova) e contatos/matches
+      await Promise.all([carregarCategorias(), carregarDados()]);
+
+      const contatoId = data.intencao.contato_id;
+      const contato = contatosCache.find(c => c.id === contatoId);
+      let html = `<div class="card"><h3>${editando ? 'Intenção atualizada!' : 'Intenção salva!'}</h3>`;
+      html += `<p style="margin:0 0 8px;">Contato: <strong>${esc(contato ? contato.nome : '')}</strong></p>`;
       if (data.matches && data.matches.length) {
-        html += '<p>Matches encontrados:</p>';
-        data.matches.forEach(m => {
-          html += `<div class="match"><span class="badge badge-${m.papel}">${m.papel}</span>${m.nome || '(sem nome)'} — diferença: ${m.diferenca}</div>`;
-        });
+        html += '<p style="margin:0;">Matches encontrados:</p>';
+        html += data.matches.map(m => `
+          <div class="match">
+            <div class="match-topo">
+              <span class="badge ${classeBadge(m.direcao)}" style="margin-right:0;">${esc(rotuloIntencao(m.direcao, m.operacao))}</span>
+              <strong>${esc(m.contato_nome || '(sem nome)')}</strong>
+              <span class="chip-pontuacao">${m.pontuacao}%</span>
+            </div>
+            <div class="match-detalhe">${esc([m.categoria, m.cidade, formatarFaixa(m.valor_min, m.valor_max)].filter(Boolean).join(' · '))}</div>
+            <div class="match-explicacao">${esc(capitalizar(m.explicacao))}</div>
+          </div>`).join('');
       } else {
-        html += '<p>Nenhum match encontrado ainda.</p>';
+        html += '<p style="margin:0;">Nenhum match encontrado ainda.</p>';
       }
-      html += '</div>';
+      html += `<div class="filtros"><button type="button" class="secundario btn-mini" onclick="verContato(${contatoId})">Ver contato</button></div></div>`;
       document.getElementById('resultado').innerHTML = html;
+    }
 
-      // recarrega o cache de categorias (pode ter criado uma nova agora)
-      await carregarCategorias();
+    function verContato(id) {
+      mostrarAbaApp('meusleads');
+      abrirDetalheContato(id);
     }
   </script>
 </body>

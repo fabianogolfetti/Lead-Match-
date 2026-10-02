@@ -1,8 +1,15 @@
 # LeadMatch
 
-Esqueleto inicial (Fase 1) da plataforma de captação e match de leads
-(compradores/vendedores de terreno, ferro em lote e estrutura metálica),
-com a IA extraindo os dados automaticamente a partir da mensagem de texto.
+Plataforma de captação e match de leads pra corretores e comerciantes que
+negociam por mensagem de texto (imóveis, galpões, ferro e aço, sucata...),
+com a IA extraindo os dados automaticamente.
+
+Cada **contato** (a pessoa) pode ter várias **intenções**: "tenho X" ou
+"procuro X", numa operação (venda, locação...), com categoria, cidade e uma
+faixa de valor (`valor_min`/`valor_max`, aceita só um dos dois preenchido).
+O match cruza intenções de direção oposta, mesma operação, categoria
+compatível (com um dicionário pequeno de sinônimos) e cidade — ver
+`categorias-config.js` e `matching.js`.
 
 ## Como rodar
 
@@ -26,24 +33,29 @@ com a IA extraindo os dados automaticamente a partir da mensagem de texto.
    ```
    npm start
    ```
-   Na primeira vez, ele cria sozinho as tabelas `corretores`, `leads` e
-   `session` (sessão de login) no Postgres apontado por `DATABASE_URL`
-   (ver `migrar()` em `database.js` e o `store` em `index.js`).
+   Na primeira vez, ele cria sozinho as tabelas (`corretores`, `contatos`,
+   `intencoes`, `categorias`, `session`...) no Postgres apontado por
+   `DATABASE_URL` (ver `migrar()` em `database.js`). Se já existirem leads de
+   uma versão anterior do app (tabela `leads`, modelo antigo de 1 lead = 1
+   pessoa com 1 papel/valor), a mesma subida migra cada um pra 1 contato + 1
+   intenção, sem apagar a tabela antiga — ver `migrarLeadsLegados()`.
 
 4. Abra `http://localhost:3000` no navegador. Cole uma mensagem de teste,
    clique em "Processar mensagem", confira os dados que a IA extraiu,
-   ajuste se precisar, e clique em "Confirmar lead". Se já tiver outro
-   lead do papel oposto (comprador/vendedor) na mesma cidade e categoria (valor aproximado mais próximo primeiro),
-   o match aparece na hora.
+   ajuste se precisar, e clique em "Confirmar". Se já tiver outra intenção de
+   direção oposta (tenho/procuro) na mesma operação, categoria e cidade
+   compatíveis, o match aparece na hora, com pontuação e explicação.
 
 ## Estrutura do projeto
 
 - `index.js` — servidor Express, junta tudo (rotas)
-- `database.js` — conecta no Postgres (`pg`) e cria as tabelas se não existirem
+- `database.js` — conecta no Postgres (`pg`), cria as tabelas e migra leads antigos
 - `auth.js` — cadastro/login/logout de corretor
-- `extraction.js` — chama a IA pra ler a mensagem e extrair os dados
-- `matching.js` — procura e ordena os leads compatíveis
-- `public/index.html` — página simples pra testar o fluxo completo
+- `categorias-config.js` — direções, operações e campos de uma intenção (fonte única)
+- `categorias.js` — etiquetas livres por corretor
+- `extraction.js` — chama a IA pra ler a mensagem e extrair os dados de uma intenção
+- `matching.js` — cruza intenções compatíveis e pontua o match
+- `public/index.html` — página (PWA) com o fluxo completo: contatos, intenções, matches
 
 ## O que falta pra virar produto de verdade
 

@@ -1,7 +1,8 @@
 // index.js
 // Servidor principal do LeadMatch.
 // Fluxo: 1) corretor manda o texto da mensagem -> 2) IA extrai os dados
-// -> 3) corretor confirma -> 4) sistema salva e sugere matches.
+// -> 3) corretor confirma -> 4) sistema salva uma intenção (num contato novo
+// ou já existente) e sugere matches.
 
 require('dotenv').config();
 
@@ -13,15 +14,16 @@ const session = require('express-session');
 const pgSession = require('connect-pg-simple')(session);
 const { pool, migrar } = require('./database');
 const { extrairLead } = require('./extraction');
-const { encontrarMatches } = require('./matching');
+const { encontrarMatches, todosOsMatches } = require('./matching');
 const { router: authRouter, exigirLogin } = require('./auth');
 const {
   listarCategorias,
   garantirCategorias,
-  definirCategoriasDoLead,
-  buscarLeadComCategorias,
+  definirCategoriasDaIntencao,
+  buscarIntencaoComCategorias,
+  listarIntencoesComCategorias,
 } = require('./categorias');
-const { TIPOS_LEAD } = require('./categorias-config');
+const { DIRECOES, OPERACOES, CAMPOS_INTENCAO } = require('./categorias-config');
 
 // identifica a versão do código rodando: hash do commit (Render define essa
 // env var sozinho em produção), senão tenta o git local (dev), senão cai pro
@@ -38,12 +40,79 @@ function obterVersaoBuild() {
 }
 const VERSAO_BUILD = obterVersaoBuild();
 
-// todos os campos específicos de qualquer tipo, sem repetir (ex: "preco_kg"
-// aparece em mais de um tipo) — usado pra montar o INSERT/UPDATE de leads
-// sem precisar listar campo por campo aqui.
-const CAMPOS_ESPECIFICOS = [
-  ...new Set(Object.values(TIPOS_LEAD).flatMap((definicao) => Object.keys(definicao.campos))),
-];
+// erros que viram resposta 4xx com a mensagem pro corretor (o resto é 500)
+class ErroHttp extends Error {
+  constructor(status, mensagem) {
+    super(mensagem);
+    this.status = status;
+  }
+}
+
+function responderErro(res, erro) {
+  if (erro instanceof ErroHttp) return res.status(erro.status).json({ erro: erro.message });
+  console.error(erro);
+  res.status(500).json({ erro: erro.message });
+}
+
+async function comTransacao(trabalho) {
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    const resultado = await trabalho(client);
+    await client.query('COMMIT');
+    return resultado;
+  } catch (erro) {
+    await client.query('ROLLBACK');
+    throw erro;
+  } finally {
+    client.release();
+  }
+}
+
+function textoOuNull(valor) {
+  const texto = String(valor ?? '').trim();
+  return texto || null;
+}
+
+function dataOuNull(valor) {
+  const texto = textoOuNull(valor);
+  if (!texto) return null;
+  if (!/^\d{4}-\d{2}-\d{2}/.test(texto)) throw new ErroHttp(400, 'Data inválida (use o formato AAAA-MM-DD).');
+  return texto.slice(0, 10);
+}
+
+function lerNumero(valor, rotulo) {
+  if (valor == null || valor === '') return null;
+  const numero = Number(valor);
+  if (!Number.isFinite(numero) || numero < 0) throw new ErroHttp(400, `${rotulo} deve ser um número maior ou igual a zero.`);
+  return numero;
+}
+
+// valida e normaliza os campos da intenção (mesma regra no cadastro e na edição)
+function lerCamposIntencao(body) {
+  const { direcao, operacao } = body;
+  if (!DIRECOES[direcao]) throw new ErroHttp(400, `direção inválida: use ${Object.keys(DIRECOES).join(' ou ')}.`);
+  if (!OPERACOES[operacao]) throw new ErroHttp(400, `operação inválida: use ${Object.keys(OPERACOES).join(', ')}.`);
+
+  const descricao = textoOuNull(body.descricao);
+  if (!descricao) throw new ErroHttp(400, 'descrição é obrigatória.');
+
+  const valorMin = lerNumero(body.valor_min, CAMPOS_INTENCAO.valor_min.label);
+  const valorMax = lerNumero(body.valor_max, CAMPOS_INTENCAO.valor_max.label);
+  if (valorMin != null && valorMax != null && valorMin > valorMax) {
+    throw new ErroHttp(400, 'O valor mínimo não pode ser maior que o valor máximo.');
+  }
+
+  return {
+    direcao,
+    operacao,
+    descricao,
+    categoria: textoOuNull(body.categoria),
+    cidade: textoOuNull(body.cidade),
+    valor_min: valorMin,
+    valor_max: valorMax,
+  };
+}
 
 const app = express();
 app.use(express.json());
@@ -72,26 +141,25 @@ app.get('/service-worker.js', (req, res) => {
 
 app.use(express.static('public'));
 
-// Descreve os tipos de lead disponíveis (campos, labels, campo de valor) pra
-// o formulário se montar sozinho, sem hardcode no front.
-app.get('/tipos-lead', exigirLogin, (req, res) => {
-  res.json(TIPOS_LEAD);
+// Direções, operações e campos da intenção (labels, rótulos "Vendo"/"Compro"
+// etc) pra o formulário se montar sozinho, sem hardcode no front.
+app.get('/config-intencoes', exigirLogin, (req, res) => {
+  res.json({ direcoes: DIRECOES, operacoes: OPERACOES, campos: CAMPOS_INTENCAO });
 });
 
-// Lista as categorias (etiquetas) do corretor logado.
+// Lista as etiquetas do corretor logado.
 app.get('/categorias', exigirLogin, async (req, res) => {
   try {
     const categorias = await listarCategorias(req.session.corretorId);
     res.json(categorias);
   } catch (erro) {
-    console.error(erro);
-    res.status(500).json({ erro: erro.message });
+    responderErro(res, erro);
   }
 });
 
-// Questionário do primeiro login: moldes que o corretor trabalha + palavras-chave
-// próprias viram categorias automaticamente. "Pular" também é uma resposta válida
-// (moldes e palavrasChave vazios), só marca o onboarding como concluído.
+// Questionário do primeiro login: palavras-chave próprias viram etiquetas
+// automaticamente. "Pular" também é uma resposta válida (listas vazias), só
+// marca o onboarding como concluído.
 app.post('/onboarding', exigirLogin, async (req, res) => {
   try {
     const { moldes, palavrasChave } = req.body;
@@ -106,8 +174,7 @@ app.post('/onboarding', exigirLogin, async (req, res) => {
     const categorias = await listarCategorias(req.session.corretorId);
     res.json({ ok: true, categorias });
   } catch (erro) {
-    console.error(erro);
-    res.status(500).json({ erro: erro.message });
+    responderErro(res, erro);
   }
 });
 
@@ -121,173 +188,176 @@ app.post('/processar-mensagem', exigirLogin, async (req, res) => {
     const dadosExtraidos = await extrairLead(texto);
     res.json({ dadosExtraidos, mensagemOriginal: texto });
   } catch (erro) {
-    console.error(erro);
-    res.status(500).json({ erro: erro.message });
+    responderErro(res, erro);
   }
 });
 
-// Passo 3 e 4: corretor confirma os dados (já revisados/corrigidos por ele
-// se precisou) -> salva no banco como confirmado, associado a ele -> já
-// retorna os matches (só entre leads do próprio corretor).
-app.post('/leads', exigirLogin, async (req, res) => {
+// Contatos do corretor logado, cada um com suas intenções (e etiquetas) dentro.
+app.get('/contatos', exigirLogin, async (req, res) => {
   try {
-    const { nome, papel, tipo, cidade, mensagemOriginal, categorias } = req.body;
+    const corretorId = req.session.corretorId;
+    const [contatos, intencoes] = await Promise.all([
+      pool.query('SELECT * FROM contatos WHERE corretor_id = $1 ORDER BY id DESC', [corretorId]),
+      listarIntencoesComCategorias(corretorId),
+    ]);
 
-    if (!papel || !tipo) {
-      return res.status(400).json({ erro: 'papel e tipo são obrigatórios.' });
-    }
-    if (!String(req.body.descricao ?? '').trim()) {
-      return res.status(400).json({ erro: 'descrição é obrigatória.' });
-    }
+    const porContato = new Map(contatos.rows.map((contato) => [contato.id, []]));
+    // intenções mais novas primeiro dentro de cada contato
+    intencoes.reverse().forEach((intencao) => porContato.get(intencao.contato_id)?.push(intencao));
 
-    const colunas = ['corretor_id', 'nome', 'papel', 'tipo', 'cidade', ...CAMPOS_ESPECIFICOS, 'mensagem_original', 'confirmado'];
-    const valores = [
+    res.json(contatos.rows.map((contato) => ({ ...contato, intencoes: porContato.get(contato.id) })));
+  } catch (erro) {
+    responderErro(res, erro);
+  }
+});
+
+// Todos os pares de intenções abertas que casam (com pontuação e motivo).
+app.get('/matches', exigirLogin, async (req, res) => {
+  try {
+    res.json(await todosOsMatches(req.session.corretorId));
+  } catch (erro) {
+    responderErro(res, erro);
+  }
+});
+
+// Passo 3 e 4: corretor confirma os dados -> salva uma intenção, num contato
+// existente (contatoId) ou num contato novo criado junto (nome, notas,
+// proximo_contato), na mesma transação -> já retorna os matches (só entre
+// intenções do próprio corretor).
+app.post('/intencoes', exigirLogin, async (req, res) => {
+  try {
+    const corretorId = req.session.corretorId;
+    const campos = lerCamposIntencao(req.body);
+    const { contatoId, nome, notas, proximo_contato: proximoContato, mensagemOriginal, categorias } = req.body;
+
+    if (!contatoId && !textoOuNull(nome)) throw new ErroHttp(400, 'nome do contato é obrigatório.');
+
+    const intencaoId = await comTransacao(async (client) => {
+      let idContato = contatoId;
+      if (idContato) {
+        const existente = await client.query('SELECT id FROM contatos WHERE id = $1 AND corretor_id = $2', [idContato, corretorId]);
+        if (!existente.rows[0]) throw new ErroHttp(404, 'Contato não encontrado.');
+      } else {
+        const novo = await client.query(
+          'INSERT INTO contatos (corretor_id, nome, notas, proximo_contato) VALUES ($1, $2, $3, $4) RETURNING id',
+          [corretorId, textoOuNull(nome), textoOuNull(notas), dataOuNull(proximoContato)]
+        );
+        idContato = novo.rows[0].id;
+      }
+
+      const inserida = await client.query(
+        `INSERT INTO intencoes
+           (contato_id, corretor_id, direcao, operacao, categoria, descricao, cidade, valor_min, valor_max, mensagem_original)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING id`,
+        [
+          idContato, corretorId, campos.direcao, campos.operacao, campos.categoria, campos.descricao,
+          campos.cidade, campos.valor_min, campos.valor_max, textoOuNull(mensagemOriginal),
+        ]
+      );
+
+      const ids = Array.isArray(categorias) && categorias.length ? await garantirCategorias(corretorId, categorias, client) : [];
+      await definirCategoriasDaIntencao(inserida.rows[0].id, ids, client);
+      return inserida.rows[0].id;
+    });
+
+    const intencao = await buscarIntencaoComCategorias(intencaoId);
+    const contato = (await pool.query('SELECT * FROM contatos WHERE id = $1', [intencao.contato_id])).rows[0];
+    const matches = await encontrarMatches(intencao);
+    res.json({ contato, intencao, matches });
+  } catch (erro) {
+    responderErro(res, erro);
+  }
+});
+
+// Edição de uma intenção já salva, com a mesma validação do cadastro.
+app.put('/intencoes/:id', exigirLogin, async (req, res) => {
+  try {
+    const corretorId = req.session.corretorId;
+    const campos = lerCamposIntencao(req.body);
+    const { categorias } = req.body;
+
+    const intencaoId = await comTransacao(async (client) => {
+      const atualizada = await client.query(
+        `UPDATE intencoes
+         SET direcao = $1, operacao = $2, categoria = $3, descricao = $4, cidade = $5,
+             valor_min = $6, valor_max = $7, atualizado_em = now()
+         WHERE id = $8 AND corretor_id = $9 RETURNING id`,
+        [
+          campos.direcao, campos.operacao, campos.categoria, campos.descricao, campos.cidade,
+          campos.valor_min, campos.valor_max, req.params.id, corretorId,
+        ]
+      );
+      if (!atualizada.rows[0]) throw new ErroHttp(404, 'Intenção não encontrada.');
+
+      const ids = Array.isArray(categorias) && categorias.length ? await garantirCategorias(corretorId, categorias, client) : [];
+      await definirCategoriasDaIntencao(atualizada.rows[0].id, ids, client);
+      return atualizada.rows[0].id;
+    });
+
+    const intencao = await buscarIntencaoComCategorias(intencaoId);
+    const matches = await encontrarMatches(intencao);
+    res.json({ intencao, matches });
+  } catch (erro) {
+    responderErro(res, erro);
+  }
+});
+
+// Marca uma intenção como fechada: some das buscas de match, mas continua no histórico.
+app.post('/intencoes/:id/fechar', exigirLogin, async (req, res) => {
+  try {
+    const resultado = await pool.query(
+      "UPDATE intencoes SET status = 'fechado', fechado_em = now() WHERE id = $1 AND corretor_id = $2 RETURNING id",
+      [req.params.id, req.session.corretorId]
+    );
+    if (!resultado.rows[0]) throw new ErroHttp(404, 'Intenção não encontrada.');
+    res.json({ intencao: await buscarIntencaoComCategorias(resultado.rows[0].id) });
+  } catch (erro) {
+    responderErro(res, erro);
+  }
+});
+
+app.delete('/intencoes/:id', exigirLogin, async (req, res) => {
+  try {
+    const resultado = await pool.query('DELETE FROM intencoes WHERE id = $1 AND corretor_id = $2', [
+      req.params.id,
       req.session.corretorId,
-      nome || null,
-      papel,
-      tipo,
-      cidade ? cidade.trim() : null,
-      ...CAMPOS_ESPECIFICOS.map((campo) => req.body[campo] ?? null),
-      mensagemOriginal || null,
-      1,
-    ];
-    const marcadores = valores.map((_, i) => `$${i + 1}`).join(', ');
-
-    const resultado = await pool.query(
-      `INSERT INTO leads (${colunas.join(', ')}) VALUES (${marcadores}) RETURNING *`,
-      valores
-    );
-
-    const leadId = resultado.rows[0].id;
-    if (Array.isArray(categorias) && categorias.length) {
-      const ids = await garantirCategorias(req.session.corretorId, categorias);
-      await definirCategoriasDoLead(leadId, ids);
-    }
-
-    const leadSalvo = await buscarLeadComCategorias(leadId);
-    const matches = await encontrarMatches(leadSalvo);
-
-    res.json({ lead: leadSalvo, matches });
-  } catch (erro) {
-    console.error(erro);
-    res.status(500).json({ erro: erro.message });
-  }
-});
-
-// Lista os leads do corretor logado (útil pra conferir o que já foi cadastrado)
-app.get('/leads', exigirLogin, async (req, res) => {
-  try {
-    const resultado = await pool.query(
-      `SELECT l.*, COALESCE(array_agg(c.nome ORDER BY c.nome) FILTER (WHERE c.nome IS NOT NULL), '{}') AS categorias
-       FROM leads l
-       LEFT JOIN lead_categorias lc ON lc.lead_id = l.id
-       LEFT JOIN categorias c ON c.id = lc.categoria_id
-       WHERE l.corretor_id = $1
-       GROUP BY l.id
-       ORDER BY l.id DESC`,
-      [req.session.corretorId]
-    );
-    res.json(resultado.rows);
-  } catch (erro) {
-    console.error(erro);
-    res.status(500).json({ erro: erro.message });
-  }
-});
-
-// Busca matches sob demanda pra um lead já salvo (tela "Meus leads").
-app.get('/leads/:id/matches', exigirLogin, async (req, res) => {
-  try {
-    const resultado = await pool.query(
-      'SELECT * FROM leads WHERE id = $1 AND corretor_id = $2',
-      [req.params.id, req.session.corretorId]
-    );
-    const lead = resultado.rows[0];
-    if (!lead) return res.status(404).json({ erro: 'Lead não encontrado.' });
-
-    const matches = await encontrarMatches(lead);
-    res.json({ matches });
-  } catch (erro) {
-    console.error(erro);
-    res.status(500).json({ erro: erro.message });
-  }
-});
-
-// Edição de um lead já salvo, reaproveitando a mesma validação/formato do cadastro.
-app.put('/leads/:id', exigirLogin, async (req, res) => {
-  try {
-    const { nome, papel, tipo, cidade, categorias } = req.body;
-
-    if (!papel || !tipo) {
-      return res.status(400).json({ erro: 'papel e tipo são obrigatórios.' });
-    }
-    if (!String(req.body.descricao ?? '').trim()) {
-      return res.status(400).json({ erro: 'descrição é obrigatória.' });
-    }
-
-    // sempre grava todos os campos específicos (não só os do tipo atual):
-    // se o lead mudou de tipo na edição, os campos do tipo antigo (que não
-    // vêm mais no payload) precisam mesmo ser zerados, não ficar esquecidos.
-    const colunas = ['nome', 'papel', 'tipo', 'cidade', ...CAMPOS_ESPECIFICOS];
-    const valores = [
-      nome || null,
-      papel,
-      tipo,
-      cidade ? cidade.trim() : null,
-      ...CAMPOS_ESPECIFICOS.map((campo) => req.body[campo] ?? null),
-    ];
-    const setSql = colunas.map((coluna, i) => `${coluna} = $${i + 1}`).join(', ') + ', atualizado_em = now()';
-
-    const resultado = await pool.query(
-      `UPDATE leads SET ${setSql} WHERE id = $${valores.length + 1} AND corretor_id = $${valores.length + 2} RETURNING id`,
-      [...valores, req.params.id, req.session.corretorId]
-    );
-
-    if (!resultado.rows[0]) return res.status(404).json({ erro: 'Lead não encontrado.' });
-    const leadId = resultado.rows[0].id;
-
-    const ids = Array.isArray(categorias) && categorias.length
-      ? await garantirCategorias(req.session.corretorId, categorias)
-      : [];
-    await definirCategoriasDoLead(leadId, ids);
-
-    const leadSalvo = await buscarLeadComCategorias(leadId);
-    const matches = await encontrarMatches(leadSalvo);
-    res.json({ lead: leadSalvo, matches });
-  } catch (erro) {
-    console.error(erro);
-    res.status(500).json({ erro: erro.message });
-  }
-});
-
-// Marca um lead como fechado: some das buscas de match, mas continua no histórico.
-app.post('/leads/:id/fechar', exigirLogin, async (req, res) => {
-  try {
-    const resultado = await pool.query(
-      "UPDATE leads SET status = 'fechado', fechado_em = now() WHERE id = $1 AND corretor_id = $2 RETURNING *",
-      [req.params.id, req.session.corretorId]
-    );
-
-    const lead = resultado.rows[0];
-    if (!lead) return res.status(404).json({ erro: 'Lead não encontrado.' });
-    res.json({ lead });
-  } catch (erro) {
-    console.error(erro);
-    res.status(500).json({ erro: erro.message });
-  }
-});
-
-app.delete('/leads/:id', exigirLogin, async (req, res) => {
-  try {
-    const resultado = await pool.query(
-      'DELETE FROM leads WHERE id = $1 AND corretor_id = $2',
-      [req.params.id, req.session.corretorId]
-    );
-
-    if (resultado.rowCount === 0) return res.status(404).json({ erro: 'Lead não encontrado.' });
+    ]);
+    if (resultado.rowCount === 0) throw new ErroHttp(404, 'Intenção não encontrada.');
     res.json({ ok: true });
   } catch (erro) {
-    console.error(erro);
-    res.status(500).json({ erro: erro.message });
+    responderErro(res, erro);
+  }
+});
+
+// Dados da pessoa (nome, notas, próximo contato) — as intenções têm rotas próprias.
+app.put('/contatos/:id', exigirLogin, async (req, res) => {
+  try {
+    const nome = textoOuNull(req.body.nome);
+    if (!nome) throw new ErroHttp(400, 'nome do contato é obrigatório.');
+
+    const resultado = await pool.query(
+      `UPDATE contatos SET nome = $1, notas = $2, proximo_contato = $3, atualizado_em = now()
+       WHERE id = $4 AND corretor_id = $5 RETURNING *`,
+      [nome, textoOuNull(req.body.notas), dataOuNull(req.body.proximo_contato), req.params.id, req.session.corretorId]
+    );
+    if (!resultado.rows[0]) throw new ErroHttp(404, 'Contato não encontrado.');
+    res.json({ contato: resultado.rows[0] });
+  } catch (erro) {
+    responderErro(res, erro);
+  }
+});
+
+// Apaga o contato e, junto (ON DELETE CASCADE), todas as intenções dele.
+app.delete('/contatos/:id', exigirLogin, async (req, res) => {
+  try {
+    const resultado = await pool.query('DELETE FROM contatos WHERE id = $1 AND corretor_id = $2', [
+      req.params.id,
+      req.session.corretorId,
+    ]);
+    if (resultado.rowCount === 0) throw new ErroHttp(404, 'Contato não encontrado.');
+    res.json({ ok: true });
+  } catch (erro) {
+    responderErro(res, erro);
   }
 });
 

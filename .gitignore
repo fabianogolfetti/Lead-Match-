@@ -9,5 +9,8 @@ node_modules/
 *.db-wal
 *.db-shm
 
+# backups do banco (hashes de senha e dados de terceiros) — nunca versionar
+backups/
+
 # configuração local do Claude Code (específica desta máquina)
 .claude/

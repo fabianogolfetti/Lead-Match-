@@ -1,36 +1,40 @@
 // extraction.js
 // Envia a mensagem do corretor para a IA e recebe de volta os dados
-// já organizados (papel, tipo, cidade, valores etc), prontos para
-// o corretor conferir e confirmar.
+// já organizados (contato, direção, operação, categoria, faixa de valor
+// etc), prontos para o corretor conferir e confirmar.
 
 require('dotenv').config();
 
-const { TIPOS_LEAD } = require('./categorias-config');
+const { DIRECOES, OPERACOES, CAMPOS_INTENCAO } = require('./categorias-config');
 
-// gera a lista de moldes do prompt direto de categorias-config.js — um tipo
-// novo ali já aparece aqui sozinho, sem precisar editar este texto na mão.
-function descreverMoldes() {
-  return Object.entries(TIPOS_LEAD)
-    .map(([tipo, definicao], indice) => {
-      const campos = Object.entries(definicao.campos)
-        .map(([campo, meta]) => (meta.opcional ? `${campo} (opcional)` : campo))
-        .join(', ');
-      return `${indice + 1}) ${tipo} (${definicao.label}): { tipo: "${tipo}", nome, papel, cidade, ${campos} }`;
-    })
-    .join('\n');
+// direções e operações do prompt saem direto de categorias-config.js — uma
+// operação nova ali já aparece aqui sozinha, sem editar este texto na mão.
+function descreverOperacoes() {
+  return Object.entries(OPERACOES)
+    .map(([chave, operacao]) => `"${chave}" (${operacao.label}): tenho = "${operacao.rotulos.tenho}", procuro = "${operacao.rotulos.procuro}"`)
+    .join('; ');
 }
 
-const SYSTEM_PROMPT = `Você lê mensagens informais de corretores/vendedores (terrenos, ferro e aço, plástico, carros)
-e extrai os dados do lead em JSON. A mensagem pode estar torta, sem formatação, com gírias.
+const CAMPOS_OBRIGATORIOS = Object.entries(CAMPOS_INTENCAO)
+  .filter(([, meta]) => !meta.opcional)
+  .map(([campo]) => campo);
 
-Existem ${Object.keys(TIPOS_LEAD).length} "moldes" possíveis. Identifique qual se aplica e preencha SOMENTE os campos daquele molde:
+const SYSTEM_PROMPT = `Você lê mensagens informais de corretores/comerciantes (imóveis, galpões, ferro e aço, sucata, plástico, carros...)
+e extrai UMA intenção de negócio em JSON. A mensagem pode estar torta, sem formatação, com gírias.
 
-${descreverMoldes()}
+Campos do JSON:
+- nome: nome da pessoa (contato) que está oferecendo ou procurando
+- direcao: ${Object.keys(DIRECOES).map((d) => `"${d}"`).join(' ou ')}. "tenho" = a pessoa tem/oferece a coisa; "procuro" = a pessoa quer conseguir a coisa
+- operacao: ${Object.keys(OPERACOES).map((o) => `"${o}"`).join(' ou ')} (${descreverOperacoes()})
+- categoria: o que é a coisa, em poucas palavras (ex: "galpão", "sucata de ferro", "terreno")
+- descricao: resumo curto do que foi dito (quantidade, estado, detalhes)
+- cidade
+- valor_min e valor_max: faixa de valor em reais, como número puro (sem "R$", sem pontos). Um valor só (ex: "850 mil") vale para os dois campos;
+  "até X" preenche só valor_max; "a partir de X" preenche só valor_min; "entre X e Y" preenche os dois.
 
-papel deve ser "comprador" ou "vendedor".
 Se um campo não aparecer na mensagem, deixe null.
-Sempre inclua um campo "campos_faltando": lista dos nomes de campo que ficaram null e são importantes
-(nome, cidade, e os campos não opcionais do molde escolhido).
+Sempre inclua "campos_faltando": lista dos campos importantes que ficaram null
+(nome, direcao, operacao, cidade${CAMPOS_OBRIGATORIOS.map((c) => `, ${c}`).join('')}). valor_min e valor_max nunca entram nessa lista.
 
 Responda APENAS com o JSON, sem nenhum texto antes ou depois.`;
 
