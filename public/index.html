@@ -188,13 +188,22 @@
   .auth-caixa { width: 100%; max-width: 360px; text-align: center; }
   .auth-caixa .card { text-align: left; }
 
-  .auth-titulo { display: flex; align-items: center; justify-content: center; gap: 10px; }
+  .auth-titulo { display: flex; align-items: center; justify-content: center; gap: 12px; }
   .auth-titulo h1 { margin: 0; }
   .auth-titulo .logo {
-    width: 44px;
-    height: 44px;
-    border-radius: 11px;
+    width: 52px;
+    height: 52px;
+    border-radius: 13px;
     border: 1px solid var(--border);
+  }
+
+  /* logo "L" âmbar nos cabeçalhos do app (fora da tela de login/onboarding) */
+  .topo-logo {
+    width: 34px;
+    height: 34px;
+    border-radius: 9px;
+    border: 1px solid var(--border);
+    flex-shrink: 0;
   }
 
   select {
@@ -289,6 +298,8 @@
      ficam com altura desigual — reduz fonte/padding pra caber numa linha */
   @media (max-width: 400px) {
     .abas button { font-size: 13px; padding: 10px 6px; }
+    /* abre espaço pro logo novo no cabeçalho do app sem espremer o resto */
+    #corretor-nome { display: none; }
   }
 
   .avatar-nome { display: flex; align-items: center; gap: 8px; }
@@ -364,6 +375,16 @@
 
   .dashboard-card.destaque .dashboard-numero { color: var(--amber-light); }
 
+  .dashboard-card.clicavel { cursor: pointer; transition: background 0.15s ease, transform 0.1s ease; }
+  .dashboard-card.clicavel:active { background: var(--bg-input); transform: scale(0.98); }
+
+  /* tela inicial: cards maiores e mais espaçados que o resto do app */
+  #view-inicio .dashboard-grid { gap: 14px; margin-top: 18px; }
+  #view-inicio .dashboard-card { padding: 20px; gap: 6px; }
+  #view-inicio .dashboard-numero { font-size: 32px; }
+  #view-inicio .card { padding: 20px; margin-top: 20px; }
+  #view-inicio h3 { font-size: 17px; }
+
   .atividade-item {
     display: flex;
     align-items: flex-start;
@@ -372,6 +393,17 @@
     border-bottom: 1px solid var(--border);
   }
   .atividade-item:last-child { border-bottom: none; }
+
+  /* recuo negativo = padding do card (#view-inicio .card, 20px), pra o toque
+     se estender até a borda do card em vez de ficar só no meio */
+  .atividade-item.clicavel {
+    cursor: pointer;
+    margin: 0 -20px;
+    padding: 8px 20px;
+    border-radius: 8px;
+    transition: background 0.15s ease;
+  }
+  .atividade-item.clicavel:active { background: var(--bg-input); }
 
   .atividade-dot {
     width: 8px;
@@ -589,6 +621,17 @@
   }
   .ptr-indicador.girando .ptr-spinner { animation: girar 0.7s linear infinite; }
   @keyframes girar { to { transform: rotate(360deg); } }
+
+  /* filtro ativo (status/match) vindo de um clique no card do dashboard */
+  .chip-filtro-ativo-rotulo {
+    padding: 5px 12px;
+    font-size: 12px;
+    font-weight: 600;
+    border-radius: 999px;
+    border: 1px solid var(--amber-light);
+    background: var(--amber-light);
+    color: var(--amber-dark);
+  }
 </style>
 </head>
 <body>
@@ -641,7 +684,10 @@
 
   <div id="tela-app" style="display:none">
     <div class="topo">
-      <h1>LeadMatch</h1>
+      <div style="display:flex; align-items:center; gap:10px;">
+        <img src="/icons/icon-192.png" alt="" class="topo-logo">
+        <h1>LeadMatch</h1>
+      </div>
       <div style="display:flex; align-items:center; gap:10px;">
         <div class="avatar-nome">
           <span id="avatar-corretor" class="avatar"></span>
@@ -654,19 +700,19 @@
     <div id="view-inicio">
       <p>Resumo dos seus contatos e negócios</p>
       <div class="dashboard-grid">
-        <div class="dashboard-card">
+        <div class="dashboard-card clicavel" onclick="irParaListaFiltrada()">
           <span class="dashboard-numero" id="dash-total">0</span>
           <span class="dashboard-label">Contatos</span>
         </div>
-        <div class="dashboard-card">
+        <div class="dashboard-card clicavel" onclick="irParaListaFiltrada('aberto')">
           <span class="dashboard-numero" id="dash-abertos">0</span>
           <span class="dashboard-label">Intenções abertas</span>
         </div>
-        <div class="dashboard-card">
+        <div class="dashboard-card clicavel" onclick="irParaListaFiltrada('fechado')">
           <span class="dashboard-numero" id="dash-fechados">0</span>
           <span class="dashboard-label">Intenções fechadas</span>
         </div>
-        <div class="dashboard-card destaque">
+        <div class="dashboard-card destaque clicavel" onclick="irParaListaFiltrada('todos', true)">
           <span class="dashboard-numero" id="dash-matches">0</span>
           <span class="dashboard-label">Intenções com match</span>
         </div>
@@ -708,6 +754,8 @@
         </label>
       </div>
 
+      <div class="filtros" id="filtro-ativo-area" style="display:none;"></div>
+
       <div class="ptr-indicador" id="ptr-indicador"><span class="ptr-spinner"></span><span>Puxe para atualizar</span></div>
 
       <div id="lista-leads"></div>
@@ -734,6 +782,7 @@
       <button type="button" class="botao-icone" onclick="fecharDetalheContato()" aria-label="Voltar">
         <svg viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg>
       </button>
+      <img src="/icons/icon-192.png" alt="" class="topo-logo">
       <span class="detalhe-titulo">Detalhes do contato</span>
     </div>
 
@@ -787,6 +836,8 @@
     let configCache = { direcoes: {}, operacoes: {}, campos: {} }; // vem de GET /config-intencoes
     let filtroDirecao = 'todos';
     let filtroCategoria = 'todos';
+    let filtroStatus = 'todos'; // 'todos' | 'aberto' | 'fechado' — setado ao clicar num card do dashboard
+    let filtroComMatch = false; // true = só contatos com pelo menos 1 intenção com match ativo
     let categoriasCache = [];
     let palavrasChaveOnboarding = [];
     let nomeCorretorAtual = '';
@@ -1166,6 +1217,23 @@
       renderizarAtividade();
     }
 
+    // clique num card do resumo (dashboard): manda pra "Meus leads" já com o
+    // filtro certo. "Contatos" (sem args) limpa tudo e mostra todo mundo.
+    function irParaListaFiltrada(status = 'todos', comMatch = false) {
+      filtroStatus = status;
+      filtroComMatch = comMatch;
+      filtroDirecao = 'todos';
+      filtroCategoria = 'todos';
+      document.getElementById('busca-leads').value = '';
+      mostrarAbaApp('meusleads');
+    }
+
+    // vai pro detalhe de um contato a partir de um evento da atividade
+    // recente, mesmo estando em outra aba (Início) no momento do clique.
+    function abrirContatoDoEvento(id) {
+      verContato(id);
+    }
+
     function descreverIntencaoCurta(intencao) {
       return `${rotuloIntencao(intencao.direcao, intencao.operacao)} ${intencao.categoria || ''}`.trim();
     }
@@ -1177,17 +1245,19 @@
       const intencoes = [...intencoesPorId.values()];
 
       const eventos = [
-        ...contatosCache.filter(c => !c.intencoes.length).map(c => ({ tipo: 'criado', data: c.criado_em, texto: `Novo contato: ${esc(c.nome || '(sem nome)')}` })),
-        ...intencoes.map(i => ({ tipo: 'criado', data: i.criado_em, texto: `Nova intenção: ${esc(descreverIntencaoCurta(i))} — ${esc(i.contato.nome || '(sem nome)')}` })),
+        ...contatosCache.filter(c => !c.intencoes.length).map(c => ({ tipo: 'criado', data: c.criado_em, texto: `Novo contato: ${esc(c.nome || '(sem nome)')}`, contatoId: c.id })),
+        ...intencoes.map(i => ({ tipo: 'criado', data: i.criado_em, texto: `Nova intenção: ${esc(descreverIntencaoCurta(i))} — ${esc(i.contato.nome || '(sem nome)')}`, contatoId: i.contato.id })),
         ...intencoes
           .filter(i => i.status === 'fechado' && i.fechado_em)
-          .map(i => ({ tipo: 'fechado', data: i.fechado_em, texto: `Intenção fechada: ${esc(descreverIntencaoCurta(i))} — ${esc(i.contato.nome || '(sem nome)')}` })),
+          .map(i => ({ tipo: 'fechado', data: i.fechado_em, texto: `Intenção fechada: ${esc(descreverIntencaoCurta(i))} — ${esc(i.contato.nome || '(sem nome)')}`, contatoId: i.contato.id })),
         ...matchesCache.map(par => {
           const a = intencoesPorId.get(par.intencao_a);
           const b = intencoesPorId.get(par.intencao_b);
           if (!a || !b) return null;
           const data = new Date(Math.max(new Date(a.criado_em), new Date(b.criado_em)));
-          return { tipo: 'match', data, texto: `Match encontrado: ${esc(a.contato.nome || '(sem nome)')} × ${esc(b.contato.nome || '(sem nome)')} (${par.pontuacao}%)` };
+          // o evento de match leva pro contato "a" do par — os dois lados não
+          // cabem num único item clicável
+          return { tipo: 'match', data, texto: `Match encontrado: ${esc(a.contato.nome || '(sem nome)')} × ${esc(b.contato.nome || '(sem nome)')} (${par.pontuacao}%)`, contatoId: a.contato.id };
         }),
       ]
         .filter(e => e && e.data)
@@ -1200,7 +1270,7 @@
       }
 
       container.innerHTML = eventos.map(e => `
-        <div class="atividade-item">
+        <div class="atividade-item clicavel" onclick="abrirContatoDoEvento(${e.contatoId})">
           <span class="atividade-dot ${e.tipo}"></span>
           <div class="atividade-texto">
             <span>${e.texto}</span>
@@ -1276,14 +1346,45 @@
         </div>`;
     }
 
+    // pill removível acima da lista, mostrando o filtro de status/match vindo
+    // de um clique no dashboard (os filtros de direção/categoria/busca já têm
+    // seus próprios chips/campo, sempre visíveis — esse aqui só aparece quando
+    // está ativo, pra não duplicar chrome na tela)
+    function renderizarFiltroAtivo() {
+      const area = document.getElementById('filtro-ativo-area');
+      const partes = [];
+      if (filtroStatus === 'aberto') partes.push('Abertas');
+      if (filtroStatus === 'fechado') partes.push('Fechadas');
+      if (filtroComMatch) partes.push('Com match');
+
+      if (!partes.length) {
+        area.style.display = 'none';
+        area.innerHTML = '';
+        return;
+      }
+      area.style.display = '';
+      area.innerHTML = `
+        <span class="chip-filtro-ativo-rotulo">Filtro: ${esc(partes.join(' · '))}</span>
+        <button type="button" class="secundario btn-mini" onclick="limparFiltroStatusEMatch()">Limpar</button>`;
+    }
+
+    function limparFiltroStatusEMatch() {
+      filtroStatus = 'todos';
+      filtroComMatch = false;
+      renderizarLeads();
+    }
+
     function renderizarLeads() {
       const busca = normalizarTexto(document.getElementById('busca-leads').value);
       const ordenacao = document.getElementById('ordenacao-leads').value;
       const listaDiv = document.getElementById('lista-leads');
+      renderizarFiltroAtivo();
 
       let contatos = contatosCache.filter(contato => {
         if (filtroDirecao !== 'todos' && !contato.intencoes.some(i => i.direcao === filtroDirecao)) return false;
         if (filtroCategoria !== 'todos' && !contato.intencoes.some(i => (i.categorias || []).includes(filtroCategoria))) return false;
+        if (filtroStatus !== 'todos' && !contato.intencoes.some(i => i.status === filtroStatus)) return false;
+        if (filtroComMatch && !contato.intencoes.some(i => i.status === 'aberto' && matchesPorIntencao.has(i.id))) return false;
         if (busca && !contatoCorrespondeABusca(contato, busca)) return false;
         return true;
       });
